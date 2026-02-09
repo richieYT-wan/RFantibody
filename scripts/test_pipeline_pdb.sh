@@ -15,6 +15,11 @@ N_DESIGN=5
 N_SEQUENCE=10
 N_RECYCLE=10
 HOTSPOTS=""
+usage() {
+  echo "Usage: $0 -f <framework.pdb> -t <target.pdb> -l <loops> -h <hotspots> -d <n_design> -s <n_sequence> -r <n_recycle>"
+  exit 1
+}
+
 while getopts ":f:t:l:h:d:s:r:" opt; do
   case ${opt} in
     f )
@@ -40,7 +45,7 @@ FW_BN="$(basename "$FRAMEWORK")"
 FW_BN="${FW_BN%.*}"
 TG_BN="$(basename "$TARGET")"
 TG_BN="${TG_BN%.*}"
-NOW="$(date '+%Y-%m-%d')"
+NOW="$(date '+%Y%m%d_%H%M%S')"
 FILENAME="${NOW}_TestRunPDB_FW_${FW_BN}_TG_${TG_BN}"
 OUTDIR="${HOMEDIR}/outputs/${FILENAME}"
 LOGDIR="${HOMEDIR}/logs/${FILENAME}"
@@ -65,12 +70,15 @@ echo "=============================================="
 echo ""
 
 HOTSPOT_ARGS=()
+
 if [[ -n "$HOTSPOTS" ]]; then
-  HOTSPOT_ARGS=" -h "${HOTSPOTS}""
+  HOTSPOT_ARGS=(-h "$HOTSPOTS")
 fi
 
-#echo "rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTDIR}/01_rfdiffusion.pdb -n ${N_DESIGN} -l "${LOOPS}" "${HOTSPOT_ARGS}" --diffuser-t 50 > ${LOGDIR}/01_DIFFUSION.log 2>&1"
-rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTDIR}/01_rfdiffusion.pdb -n ${N_DESIGN} -l "${LOOPS}" "${HOTSPOT_ARGS}" --diffuser-t 50 > ${LOGDIR}/01_DIFFUSION.log 2>&1
+
+echo "rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTDIR}/01_rfdiffusion.pdb -n ${N_DESIGN} -l "${LOOPS}" --diffuser-t 50 ${HOTSPOT_ARGS[*]} > ${LOGDIR}/01_DIFFUSION.log 2>&1"
+
+rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTDIR}/01_rfdiffusion.pdb -n ${N_DESIGN} -l "${LOOPS}" --diffuser-t 50 ${HOTSPOT_ARGS[*]} > ${LOGDIR}/01_DIFFUSION.log 2>&1
 
 echo ""
 echo "=============================================="
@@ -79,8 +87,9 @@ echo "=============================================="
 echo ""
 
 
-#echo "proteinmpnn -i ${OUTDIR}/01_rfdiffusion.pdb -o ${OUTDIR}/02_sequences.pdb -l "H1,H2,H3" -n ${N_SEQUENCE} > ${LOGDIR}/02_PROTEINMPNN.log "
-proteinmpnn -i ${OUTDIR}/01_rfdiffusion.pdb -o ${OUTDIR}/02_sequences.pdb -l "H1,H2,H3" -n ${N_SEQUENCE} > ${LOGDIR}/02_PROTEINMPNN.log
+echo "proteinmpnn -i ${OUTDIR}/01_rfdiffusion.pdb -o ${OUTDIR}/02_sequences.pdb -l "H1,H2,H3" -n ${N_SEQUENCE} > ${LOGDIR}/02_PROTEINMPNN.log 2>&1"
+
+proteinmpnn -i ${OUTDIR}/01_rfdiffusion.pdb -o ${OUTDIR}/02_sequences.pdb -l "H1,H2,H3" -n ${N_SEQUENCE} > ${LOGDIR}/02_PROTEINMPNN.log 2>&1
 
 echo ""
 echo "=============================================="
@@ -88,7 +97,8 @@ echo "Step 3/3: RF2 with $N_RECYCLE recycling steps"
 echo "=============================================="
 echo ""
 
-#echo "rf2 -i ${OUTDIR}/02_sequences.pdb -o ${OUTDIR}03_RF2_folds.pdb -r ${N_RECYCLE} > ${LOGDIR}/03_RF2.log 2>&1"
+echo "rf2 -i ${OUTDIR}/02_sequences.pdb -o ${OUTDIR}03_RF2_folds.pdb -r ${N_RECYCLE} > ${LOGDIR}/03_RF2.log 2>&1"
+
 rf2 -i ${OUTDIR}/02_sequences.pdb -o ${OUTDIR}03_RF2_folds.pdb -r ${N_RECYCLE} > ${LOGDIR}/03_RF2.log 2>&1
 
 echo "[END   $(date '+%Y-%m-%d %H:%M:%S')] Script finished FULL PDB"

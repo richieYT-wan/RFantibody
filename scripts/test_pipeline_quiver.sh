@@ -15,6 +15,11 @@ N_DESIGN=5
 N_SEQUENCE=10
 N_RECYCLE=10
 HOTSPOTS=""
+usage() {
+  echo "Usage: $0 -f <framework.pdb> -t <target.pdb> -l <loops> -h <hotspots> -d <n_design> -s <n_sequence> -r <n_recycle>"
+  exit 1
+}
+
 while getopts ":f:t:l:h:d:s:r:" opt; do
   case ${opt} in
     f )
@@ -40,7 +45,7 @@ FW_BN="$(basename "$FRAMEWORK")"
 FW_BN="${FW_BN%.*}"
 TG_BN="$(basename "$TARGET")"
 TG_BN="${TG_BN%.*}"
-NOW="$(date '+%Y-%m-%d')"
+NOW="$(date '+%Y%m%d_%H%M%S')"
 FILENAME="${NOW}_TestRunQuiver_FW_${FW_BN}_TG_${TG_BN}"
 OUTDIR="${HOMEDIR}/outputs/${FILENAME}"
 LOGDIR="${HOMEDIR}/logs/${FILENAME}"
@@ -65,11 +70,14 @@ echo "=============================================="
 echo ""
 
 
+HOTSPOT_ARGS=()
+
 if [[ -n "$HOTSPOTS" ]]; then
-  HOTSPOT_ARGS=" -h "${HOTSPOTS}""
+  HOTSPOT_ARGS=(-h "$HOTSPOTS")
 fi
 
-rfdiffusion -f ${FRAMEWORK} -t ${TARGET} --output-quiver ${OUTDIR}/01_rfdiffusion.qv -n ${N_DESIGN} -l "${LOOPS}" "${HOTSPOT_ARGS}" --diffuser-t 50 > ${LOGDIR}/01_DIFFUSION.log 2>&1
+
+rfdiffusion -f ${FRAMEWORK} -t ${TARGET} --output-quiver ${OUTDIR}/01_rfdiffusion.qv -n ${N_DESIGN} -l "${LOOPS}" --diffuser-t 50 ${HOTSPOT_ARGS[*]} > ${LOGDIR}/01_DIFFUSION.log 2>&1
 
 echo ""
 echo "=============================================="
