@@ -45,29 +45,25 @@ FW_BN="$(basename "$FRAMEWORK")"
 FW_BN="${FW_BN%.*}"
 TG_BN="$(basename "$TARGET")"
 TG_BN="${TG_BN%.*}"
-NOW="$(date '+%Y%m%d_%H%M%S')"
+NOW="$(date '+%y%m%d_%H%M%S')"
 FILENAME="${NOW}_TestRunPDB_FW_${FW_BN}_TG_${TG_BN}"
 OUTDIR="${HOMEDIR}/outputs/${FILENAME}"
 LOGDIR="${HOMEDIR}/logs/${FILENAME}"
 mkdir -p "${OUTDIR}" "${LOGDIR}"
 
-echo "Running pipeline with: "
-echo "$FRAMEWORK: input framework"
-echo "$TARGET: input target"
-echo "$LOOPS: Design loops"
-echo "$HOTSPOTS: hotspots"
-echo "$N_DESIGN: N designs (RFdiffusion)"
-echo "$N_SEQUENCE: N sequences (ProteinMPNN)"
-echo "$N_RECYCLE: N recycling steps (RF2)"
+argslog() {
+  echo "Running pipeline with: "
+  echo "$FRAMEWORK: input framework"
+  echo "$TARGET: input target"
+  echo "$LOOPS: Design loops"
+  echo "$HOTSPOTS: hotspots"
+  echo "$N_DESIGN: N designs (RFdiffusion)"
+  echo "$N_SEQUENCE: N sequences (ProteinMPNN)"
+  echo "$N_RECYCLE: N recycling steps (RF2)"
+}
+argslog
+argslog > ${LOGDIR}run.log
 
-echo "******************"
-echo "Starting pipeline"
-echo "******************"
-echo ""
-echo "=============================================="
-echo "Step 1/3: RFdiffusion with $N_DESIGN designs, $LOOPS Design Loops and $HOTSPOTS Hotspots"
-echo "=============================================="
-echo ""
 
 HOTSPOT_ARGS=()
 
@@ -76,33 +72,56 @@ if [[ -n "$HOTSPOTS" ]]; then
 fi
 
 
-echo "rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTDIR}/01_rfdiffusion.pdb -n ${N_DESIGN} -l "${LOOPS}" --diffuser-t 50 ${HOTSPOT_ARGS[*]} > ${LOGDIR}/01_DIFFUSION.log 2>&1"
+rfdlog() {
+  echo "******************"
+  echo "Starting pipeline"
+  echo "******************"
+  echo ""
+  echo "=============================================="
+  echo "Step 1/3: RFdiffusion with $N_DESIGN designs, $LOOPS Design Loops and $HOTSPOTS Hotspots"
+  echo "=============================================="
+  echo ""
+  echo "rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTDIR}/01_rfdiffusion.pdb -n ${N_DESIGN} -l ${LOOPS} --diffuser-t 50 ${HOTSPOT_ARGS[*]} > ${LOGDIR}/01_DIFFUSION.log 2>&1"
+}
+rfdlog
+rfdlog > ${LOGDIR}run.log
+
+
 
 rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTDIR}/01_rfdiffusion.pdb -n ${N_DESIGN} -l "${LOOPS}" --diffuser-t 50 ${HOTSPOT_ARGS[*]} > ${LOGDIR}/01_DIFFUSION.log 2>&1
 
-echo ""
-echo "=============================================="
-echo "Step 2/3: ProteinMPNN with $N_SEQUENCE sequences"
-echo "=============================================="
-echo ""
+pmpnnlog(){
+  echo ""
+  echo "=============================================="
+  echo "Step 2/3: ProteinMPNN with $N_SEQUENCE sequences"
+  echo "=============================================="
+  echo ""
+  echo "proteinmpnn -i ${OUTDIR}/01_rfdiffusion.pdb -o ${OUTDIR}/02_sequences.pdb -l "H1,H2,H3" -n ${N_SEQUENCE} > ${LOGDIR}/02_PROTEINMPNN.log 2>&1"
+}
+pmpnnlog
+pmpnnlog > ${LOGDIR}run.log
 
-
-echo "proteinmpnn -i ${OUTDIR}/01_rfdiffusion.pdb -o ${OUTDIR}/02_sequences.pdb -l "H1,H2,H3" -n ${N_SEQUENCE} > ${LOGDIR}/02_PROTEINMPNN.log 2>&1"
 
 proteinmpnn -i ${OUTDIR}/01_rfdiffusion.pdb -o ${OUTDIR}/02_sequences.pdb -l "H1,H2,H3" -n ${N_SEQUENCE} > ${LOGDIR}/02_PROTEINMPNN.log 2>&1
 
-echo ""
-echo "=============================================="
-echo "Step 3/3: RF2 with $N_RECYCLE recycling steps"
-echo "=============================================="
-echo ""
-
-echo "rf2 -i ${OUTDIR}/02_sequences.pdb -o ${OUTDIR}03_RF2_folds.pdb -r ${N_RECYCLE} > ${LOGDIR}/03_RF2.log 2>&1"
+rf2log(){
+  echo ""
+  echo "=============================================="
+  echo "Step 3/3: RF2 with $N_RECYCLE recycling steps"
+  echo "=============================================="
+  echo ""
+  echo "rf2 -i ${OUTDIR}/02_sequences.pdb -o ${OUTDIR}03_RF2_folds.pdb -r ${N_RECYCLE} > ${LOGDIR}/03_RF2.log 2>&1"
+}
+rf2log
+rf2log > ${LOGDIR}run.log
 
 rf2 -i ${OUTDIR}/02_sequences.pdb -o ${OUTDIR}03_RF2_folds.pdb -r ${N_RECYCLE} > ${LOGDIR}/03_RF2.log 2>&1
 
-echo "[END   $(date '+%Y-%m-%d %H:%M:%S')] Script finished FULL PDB"
-
-echo "******************"
-echo "Pipeline done"
-echo "******************"
+endlog(){
+  echo "[END   $(date '+%Y-%m-%d %H:%M:%S')] Script finished FULL PDB"
+  echo "******************"
+  echo "Pipeline done"
+  echo "******************"
+}
+endlog
+endlog > ${LOGDIR}run.log
