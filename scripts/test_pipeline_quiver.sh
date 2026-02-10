@@ -62,7 +62,7 @@ argslog() {
   echo "$N_RECYCLE: N recycling steps (RF2)"
 }
 argslog
-argslog > ${LOGDIR}/run.log
+argslog >> ${LOGDIR}/run.log
 
 HOTSPOT_ARGS=()
 
@@ -96,10 +96,10 @@ pmpnnlog(){
   echo "proteinmpnn -i ${OUTDIR}/01_rfdiffusion.pdb -o ${OUTDIR}/02_sequences.pdb -l "H1,H2,H3" -n ${N_SEQUENCE} > ${LOGDIR}/02_PROTEINMPNN.log 2>&1"
 }
 pmpnnlog
-pmpnnlog > ${LOGDIR}/run.log
+pmpnnlog >> ${LOGDIR}/run.log
 
 
-proteinmpnn --input-quiver ${OUTDIR}/01_rfdiffusion.qv --output-quiver ${OUTDIR}/02_sequences.qv -l "H1,H2,H3" -n 10 > ${HOMEDIR}/logs/${FILENAME}_PROTEINMPNN.log
+proteinmpnn --input-quiver ${OUTDIR}/01_rfdiffusion.qv --output-quiver ${OUTDIR}/02_sequences.qv -l "H1,H2,H3" -n 10 > ${LOGDIR}/02_PROTEINMPNN.log 2>&1
 
 
 
@@ -112,9 +112,9 @@ rf2log(){
   echo "rf2 -i ${OUTDIR}/02_sequences.pdb -o ${OUTDIR}03_RF2_folds.pdb -r ${N_RECYCLE} > ${LOGDIR}/03_RF2.log 2>&1"
 }
 rf2log
-rf2log > ${LOGDIR}/run.log
+rf2log >> ${LOGDIR}/run.log
 
-rf2 --input-quiver ${OUTDIR}/02_sequences.qv --output-quiver ${OUTDIR}/03_RF2_folds.qv -r 10 > ${HOMEDIR}/logs/${FILENAME}_RF2.log 2>&1
+rf2 --input-quiver ${OUTDIR}/02_sequences.qv --output-quiver ${OUTDIR}/03_RF2_folds.qv -r 10 > ${LOGDIR}/03_RF2.log 2>&1
 
 
 endlog(){
@@ -124,4 +124,4 @@ endlog(){
   echo "******************"
 }
 endlog
-endlog > ${LOGDIR}/run.log
+endlog >> ${LOGDIR}/run.log

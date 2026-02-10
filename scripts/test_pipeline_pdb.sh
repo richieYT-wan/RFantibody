@@ -62,7 +62,7 @@ argslog() {
   echo "$N_RECYCLE: N recycling steps (RF2)"
 }
 argslog
-argslog > ${LOGDIR}/run.log
+argslog >> ${LOGDIR}/run.log
 
 
 HOTSPOT_ARGS=()
@@ -81,14 +81,12 @@ rfdlog() {
   echo "Step 1/3: RFdiffusion with $N_DESIGN designs, $LOOPS Design Loops and $HOTSPOTS Hotspots"
   echo "=============================================="
   echo ""
-  echo "rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTDIR}/01_rfdiffusion.pdb -n ${N_DESIGN} -l ${LOOPS} --diffuser-t 50 ${HOTSPOT_ARGS[*]} > ${LOGDIR}/01_DIFFUSION.log 2>&1"
+  echo "rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTDIR}/01_rfdiffusion/design -n ${N_DESIGN} -l "${LOOPS}" --diffuser-t 50 ${HOTSPOT_ARGS[*]} > ${LOGDIR}/01_DIFFUSION.log 2>&1"
 }
 rfdlog
-rfdlog > ${LOGDIR}/run.log
+rfdlog >> ${LOGDIR}/run.log
 
-
-
-rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTDIR}/01_rfdiffusion.pdb -n ${N_DESIGN} -l "${LOOPS}" --diffuser-t 50 ${HOTSPOT_ARGS[*]} > ${LOGDIR}/01_DIFFUSION.log 2>&1
+rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTDIR}/01_rfdiffusion/design -n ${N_DESIGN} -l "${LOOPS}" --diffuser-t 50 ${HOTSPOT_ARGS[*]} > ${LOGDIR}/01_DIFFUSION.log 2>&1
 
 pmpnnlog(){
   echo ""
@@ -99,10 +97,9 @@ pmpnnlog(){
   echo "proteinmpnn -i ${OUTDIR}/01_rfdiffusion.pdb -o ${OUTDIR}/02_sequences.pdb -l "H1,H2,H3" -n ${N_SEQUENCE} > ${LOGDIR}/02_PROTEINMPNN.log 2>&1"
 }
 pmpnnlog
-pmpnnlog > ${LOGDIR}/run.log
+pmpnnlog >> ${LOGDIR}/run.log
 
-
-proteinmpnn -i ${OUTDIR}/01_rfdiffusion.pdb -o ${OUTDIR}/02_sequences.pdb -l "H1,H2,H3" -n ${N_SEQUENCE} > ${LOGDIR}/02_PROTEINMPNN.log 2>&1
+proteinmpnn -i ${OUTDIR}/01_rfdiffusion/ -o ${OUTDIR}/02_sequences/ -l "H1,H2,H3" -n ${N_SEQUENCE} > ${LOGDIR}/02_PROTEINMPNN.log 2>&1
 
 rf2log(){
   echo ""
@@ -113,9 +110,9 @@ rf2log(){
   echo "rf2 -i ${OUTDIR}/02_sequences.pdb -o ${OUTDIR}03_RF2_folds.pdb -r ${N_RECYCLE} > ${LOGDIR}/03_RF2.log 2>&1"
 }
 rf2log
-rf2log > ${LOGDIR}/run.log
+rf2log >> ${LOGDIR}/run.log
 
-rf2 -i ${OUTDIR}/02_sequences.pdb -o ${OUTDIR}03_RF2_folds.pdb -r ${N_RECYCLE} > ${LOGDIR}/03_RF2.log 2>&1
+rf2 -i ${OUTDIR}/02_sequences/ -o ${OUTDIR}/03_RF2_folds/ -r ${N_RECYCLE} > ${LOGDIR}/03_RF2.log 2>&1
 
 endlog(){
   echo "[END   $(date '+%Y-%m-%d %H:%M:%S')] Script finished FULL PDB"
@@ -124,4 +121,4 @@ endlog(){
   echo "******************"
 }
 endlog
-endlog > ${LOGDIR}/run.log
+endlog >> ${LOGDIR}/run.log
