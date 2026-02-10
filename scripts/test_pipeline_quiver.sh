@@ -20,7 +20,7 @@ usage() {
   exit 1
 }
 
-while getopts ":f:t:l:h:d:s:r:" opt; do
+while getopts ":f:t:l:h:d:s:r:c:" opt; do
   case ${opt} in
     f )
       FRAMEWORK=$OPTARG ;;
@@ -36,10 +36,14 @@ while getopts ":f:t:l:h:d:s:r:" opt; do
       N_SEQUENCE=$OPTARG ;;
     r )
       N_RECYCLE=$OPTARG ;;
+    c )
+      CUDA_DEVICE=$OPTARG ;;
     *)
       usage ;;
   esac
 done
+
+export CUDA_VISIBLE_DEVICES=$CUDA_DEVICE
 
 FW_BN="$(basename "$FRAMEWORK")"
 FW_BN="${FW_BN%.*}"
@@ -52,6 +56,9 @@ LOGDIR="${HOMEDIR}/logs/${FILENAME}"
 mkdir -p "${OUTDIR}" "${LOGDIR}"
 
 argslog() {
+  echo ""
+  echo "[START $(date '+%Y-%m-%d %H:%M:%S')] Script started; Format: PDB"
+  echo ""
   echo "Running pipeline with: "
   echo "$FRAMEWORK: input framework"
   echo "$TARGET: input target"
