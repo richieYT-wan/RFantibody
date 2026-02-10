@@ -51,6 +51,19 @@ OUTDIR="${HOMEDIR}/outputs/${FILENAME}"
 LOGDIR="${HOMEDIR}/logs/${FILENAME}"
 mkdir -p "${OUTDIR}" "${LOGDIR}"
 
+argslog() {
+  echo "Running pipeline with: "
+  echo "$FRAMEWORK: input framework"
+  echo "$TARGET: input target"
+  echo "$LOOPS: Design loops"
+  echo "$HOTSPOTS: hotspots"
+  echo "$N_DESIGN: N designs (RFdiffusion)"
+  echo "$N_SEQUENCE: N sequences (ProteinMPNN)"
+  echo "$N_RECYCLE: N recycling steps (RF2)"
+}
+argslog
+argslog > ${LOGDIR}/run.log
+
 HOTSPOT_ARGS=()
 
 if [[ -n "$HOTSPOTS" ]]; then
@@ -69,7 +82,7 @@ rfdlog() {
   echo "rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTDIR}/01_rfdiffusion.pdb -n ${N_DESIGN} -l ${LOOPS} --diffuser-t 50 ${HOTSPOT_ARGS[*]} > ${LOGDIR}/01_DIFFUSION.log 2>&1"
 }
 rfdlog
-rfdlog > ${LOGDIR}run.log
+rfdlog > ${LOGDIR}/run.log
 
 rfdiffusion -f ${FRAMEWORK} -t ${TARGET} --output-quiver ${OUTDIR}/01_rfdiffusion.qv -n ${N_DESIGN} -l "${LOOPS}" --diffuser-t 50 ${HOTSPOT_ARGS[*]} > ${LOGDIR}/01_DIFFUSION.log 2>&1
 
@@ -83,7 +96,7 @@ pmpnnlog(){
   echo "proteinmpnn -i ${OUTDIR}/01_rfdiffusion.pdb -o ${OUTDIR}/02_sequences.pdb -l "H1,H2,H3" -n ${N_SEQUENCE} > ${LOGDIR}/02_PROTEINMPNN.log 2>&1"
 }
 pmpnnlog
-pmpnnlog > ${LOGDIR}run.log
+pmpnnlog > ${LOGDIR}/run.log
 
 
 proteinmpnn --input-quiver ${OUTDIR}/01_rfdiffusion.qv --output-quiver ${OUTDIR}/02_sequences.qv -l "H1,H2,H3" -n 10 > ${HOMEDIR}/logs/${FILENAME}_PROTEINMPNN.log
@@ -99,7 +112,7 @@ rf2log(){
   echo "rf2 -i ${OUTDIR}/02_sequences.pdb -o ${OUTDIR}03_RF2_folds.pdb -r ${N_RECYCLE} > ${LOGDIR}/03_RF2.log 2>&1"
 }
 rf2log
-rf2log > ${LOGDIR}run.log
+rf2log > ${LOGDIR}/run.log
 
 rf2 --input-quiver ${OUTDIR}/02_sequences.qv --output-quiver ${OUTDIR}/03_RF2_folds.qv -r 10 > ${HOMEDIR}/logs/${FILENAME}_RF2.log 2>&1
 
@@ -111,4 +124,4 @@ endlog(){
   echo "******************"
 }
 endlog
-endlog > ${LOGDIR}run.log
+endlog > ${LOGDIR}/run.log
