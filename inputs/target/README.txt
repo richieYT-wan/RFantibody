@@ -10,7 +10,7 @@ processed files are created using RFantibody/scripts/util/pipeline_clean_target.
 
 Infos for hotspot definitions
     Residue is marked (in processed file, under REMARK 900) as hotspot if:
-        - RSA > 0.4
+        - RSA > 0.25
         - Not occluded (cutoff = 4.0 Angstrom)
     --> This is not perfect as residues near occluded residues might be marked as "available"
 
