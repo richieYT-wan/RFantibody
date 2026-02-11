@@ -4,11 +4,17 @@ import math
 from collections import defaultdict
 from typing import Optional, Set, Tuple, Dict, List
 
+import pandas as pd
+
 """
 This script parses a target PDB file (raw pdb),
 trims it and removes ligands so that RFantibody can run.
-Ligands and occluded residues (e.g. bound by or near ligands (Threshold<=4Å) 
-are marked in the REMARK section of the processed pdb file
+Ligands and occluded residues (e.g. bound by or near ligands (Threshold<=4Å)
+are marked in the REMARK section of the processed pdb file.
+
+Additions:
+- Optional DSSP CSV input (from run_dssp.py) to suggest "hotspot" residues:
+  rsa > threshold AND not occluded by ligand (as defined by this script).
 """
 
 WATER_RESNAMES = {"HOH", "WAT", "H2O", "DOD"}
@@ -20,7 +26,7 @@ def _safe_pad(line: str, n: int = 80) -> str:
 
 
 def _remark_line(payload: str, remark_no: int = 900) -> str:
-    # single line, no wrapping (you asked for explicit newlines)
+    # single line, no wrapping
     return f"REMARK {remark_no:3d} {payload}".rstrip()
 
 
@@ -61,6 +67,38 @@ def _parse_atom_line(line: str):
     }
 
 
+def _chain_sort_key(ch: str) -> tuple:
+    return (1, "") if ch == " " else (0, ch)
+
+
+def _load_dssp_csv(dssp_csv: str) -> pd.DataFrame:
+    """
+    Expects the CSV format produced by run_dssp.py:
+      chain, res_number, aa, ss, rsa, asa, ...
+    """
+    df = pd.read_csv(dssp_csv)
+
+    # Normalise expected column names
+    if "res_number" not in df.columns:
+        raise ValueError(f"DSSP CSV missing required column 'res_number': {dssp_csv}")
+    if "chain" not in df.columns:
+        raise ValueError(f"DSSP CSV missing required column 'chain': {dssp_csv}")
+    if "rsa" not in df.columns:
+        raise ValueError(f"DSSP CSV missing required column 'rsa': {dssp_csv}")
+
+    df["chain"] = df["chain"].astype(str).str.strip().replace({"": " "})
+    df["res_number"] = df["res_number"].astype(int)
+    df["rsa"] = pd.to_numeric(df["rsa"], errors="coerce")
+
+    # Optional fields
+    if "aa" in df.columns:
+        df["aa"] = df["aa"].astype(str).str.strip()
+    if "asa" in df.columns:
+        df["asa"] = pd.to_numeric(df["asa"], errors="coerce")
+
+    return df
+
+
 def clean_pdb_for_rfantibody(
     in_path: str,
     out_path: str,
@@ -70,6 +108,8 @@ def clean_pdb_for_rfantibody(
     renumber: bool = True,
     keep_altloc: str = "A",
     drop_h: bool = True,
+    dssp_csv: Optional[str] = None,
+    rsa_threshold: Optional[float] = None,
 ) -> None:
     original_remarks: List[str] = []
     link_lines: List[str] = []
@@ -169,26 +209,16 @@ def clean_pdb_for_rfantibody(
     extra_remarks: List[str] = []
 
     # 1) LINK lines -> two REMARK lines each (explicit newline each time)
-    #    Format:
-    #      REMARK 900 RFANTIBODY_LIGAND_LINK LINK
-    #      REMARK 900 <rest of LINK line after 'LINK'>
     for l in link_lines:
         extra_remarks.append(_remark_line("RFANTIBODY_LIGAND_LINK LINK", 900))
-        # Keep everything after "LINK" (including spacing), but drop leading spaces for readability
         rest = l[6:].rstrip("\n")
         extra_remarks.append(_remark_line(rest.lstrip(), 900))
 
-        # 2) Occlusion lines -> two REMARK lines per residue
-    #    Format:
-    #      REMARK 900 RFANTIBODY_OCCLUDED_RES
-    #      REMARK 900 ASN A209 min_dist=1.42A NAG A302
+    # 2) Occlusion lines -> two REMARK lines per residue
     contact_items = []
     for (chain, resseq, icode, resn), (d, (lresn, lchain, lresseq, licode)) in res_best.items():
         if d <= ligand_cutoff and lresn:
             contact_items.append(((chain, resseq, icode, resn), d, (lresn, lchain, lresseq, licode)))
-
-    def _chain_sort_key(ch: str) -> tuple:
-        return (1, "") if ch == " " else (0, ch)
 
     # Sort by chain then residue number (then insertion code), not by distance
     contact_items.sort(
@@ -200,6 +230,9 @@ def clean_pdb_for_rfantibody(
         )
     )
 
+    # Build a simple "occluded" set for hotspot filtering (ignore insertion code for DSSP matching)
+    occluded_simple: Set[Tuple[str, int]] = set()
+
     for (chain, resseq, icode, resn), d, (lresn, lchain, lresseq, licode) in contact_items:
         ic = icode.strip()
         lic = licode.strip()
@@ -210,7 +243,60 @@ def clean_pdb_for_rfantibody(
                 900,
             )
         )
+        occluded_simple.add((chain, resseq))
 
+    # 3) Hotspot suggestions from DSSP (rsa > threshold AND not occluded)
+    if dssp_csv is not None and rsa_threshold is not None:
+        ddf = _load_dssp_csv(dssp_csv)
+        if renumber:
+        # Sort for deterministic renumbering
+            ddf = ddf.sort_values(by=["chain", "res_number"], kind="mergesort")
+
+            new_numbers = []
+            for chain, sub in ddf.groupby("chain", sort=False):
+                mapping = {
+                    old_res: i + 1
+                    for i, old_res in enumerate(sorted(sub["res_number"].unique()))
+                }
+                new_numbers.extend(sub["res_number"].map(mapping))
+
+            ddf["res_number"] = new_numbers
+        # If chains filter is active, apply it here too
+        if chains is not None:
+            ddf = ddf[ddf["chain"].isin(chains)]
+
+        # Candidate = RSA above threshold AND not occluded
+        # (Occlusion is defined by this script, not by RSA.)
+        ddf = ddf[ddf["rsa"].notna()]
+        cand = ddf[ddf["rsa"] > float(rsa_threshold)].copy()
+        cand["is_occluded"] = cand.apply(lambda r: (r["chain"], int(r["res_number"])) in occluded_simple, axis=1)
+        cand = cand[~cand["is_occluded"]]
+
+        # Sort by chain then residue number
+        cand = cand.sort_values(
+            by=["chain", "res_number"],
+            key=lambda s: s.map(lambda x: _chain_sort_key(str(x)) if s.name == "chain" else x),
+            kind="mergesort",
+        )
+
+        for _, r in cand.iterrows():
+            chain = str(r["chain"]).strip() or " "
+            resn_3 = str(r["aa"]).strip() if "aa" in cand.columns else ""
+            resnum = int(r["res_number"])
+            rsa = float(r["rsa"])
+
+            # Optional ASA
+            asa_str = ""
+            if "asa" in cand.columns and pd.notna(r.get("asa", None)):
+                asa_str = f" asa={float(r['asa']):.2f}"
+            else:
+                asa_str = ""
+
+            extra_remarks.append(_remark_line("RFANTIBODY_HOTSPOT_RES", 900))
+            if resn_3:
+                extra_remarks.append(_remark_line(f"{resn_3} {chain}{resnum} rsa={rsa:.4f}{asa_str}", 900))
+            else:
+                extra_remarks.append(_remark_line(f"{chain}{resnum} rsa={rsa:.4f}{asa_str}", 900))
 
     # Renumber residues in output ATOM lines if requested
     out_atom_lines: List[str] = []
@@ -268,6 +354,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--no-renumber", action="store_true")
     p.add_argument("--keep-h", action="store_true")
     p.add_argument("--altloc", default="A")
+
+    # NEW: DSSP-based hotspot suggestions
+    p.add_argument("--dssp_csv", default=None, help="CSV produced by run_dssp.py")
+    p.add_argument("--rsa_threshold", type=float, default=None, help="Hotspot RSA threshold (e.g. 0.25)")
+
     return p.parse_args()
 
 
@@ -285,4 +376,6 @@ if __name__ == "__main__":
         renumber=not args.no_renumber,
         keep_altloc=args.altloc,
         drop_h=not args.keep_h,
+        dssp_csv=args.dssp_csv,
+        rsa_threshold=args.rsa_threshold,
     )

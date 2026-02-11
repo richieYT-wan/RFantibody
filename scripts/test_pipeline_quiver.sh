@@ -89,7 +89,7 @@ rfdlog() {
   echo "rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTDIR}/01_rfdiffusion.pdb -n ${N_DESIGN} -l ${LOOPS} --diffuser-t 50 ${HOTSPOT_ARGS[*]} > ${LOGDIR}/01_DIFFUSION.log 2>&1"
 }
 rfdlog
-rfdlog > ${LOGDIR}/run.log
+rfdlog >> ${LOGDIR}/run.log
 
 rfdiffusion -f ${FRAMEWORK} -t ${TARGET} --output-quiver ${OUTDIR}/01_rfdiffusion.qv -n ${N_DESIGN} -l "${LOOPS}" --diffuser-t 50 ${HOTSPOT_ARGS[*]} > ${LOGDIR}/01_DIFFUSION.log 2>&1
 
