@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import math
-from collections import defaultdict
+import os
 from typing import Optional, Set, Tuple, Dict, List
 
 import pandas as pd
@@ -334,6 +334,12 @@ def clean_pdb_for_rfantibody(
     if final_atom_lines:
         final_atom_lines.append("TER")
 
+    if chains is not None:
+        basename, dirname = os.path.basename(out_path), os.path.dirname(out_path)
+        basename, extension = os.path.splitext(basename)
+        bn = basename + f"_chains_{'_'.join(sorted(chains))}"
+        out_path = os.path.join(dirname, bn + extension)
+
     with open(out_path, "w", encoding="utf-8") as f:
         for r in original_remarks:
             f.write(r + "\n")
@@ -351,13 +357,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--chains", default="", help="Comma-separated chains to keep, e.g. A,B")
     p.add_argument("--ligands", default="", help="Comma-separated ligand resnames to consider, e.g. FVP,NAG")
     p.add_argument("--cutoff", type=float, default=4.0, help="Å cutoff for occlusion marking (default 4.0)")
-    p.add_argument("--no-renumber", action="store_true")
-    p.add_argument("--keep-h", action="store_true")
+    p.add_argument("--renumber", action="store_true", help="Renumber the residues from author-numbering to starting from 1 (default False)")
+    p.add_argument("--keep-h", action="store_true", help="Keep hydrogens")
     p.add_argument("--altloc", default="A")
 
-    # NEW: DSSP-based hotspot suggestions
+    # DSSP-based hotspot suggestions
     p.add_argument("--dssp_csv", default=None, help="CSV produced by run_dssp.py")
-    p.add_argument("--rsa_threshold", type=float, default=None, help="Hotspot RSA threshold (e.g. 0.25)")
+    p.add_argument("--rsa_threshold", type=float, default=0.2, help="Hotspot RSA threshold (e.g. 0.25)")
 
     return p.parse_args()
 
@@ -373,7 +379,7 @@ if __name__ == "__main__":
         chains=chains,
         ligands=ligands,
         ligand_cutoff=args.cutoff,
-        renumber=not args.no_renumber,
+        renumber=args.renumber,
         keep_altloc=args.altloc,
         drop_h=not args.keep_h,
         dssp_csv=args.dssp_csv,

@@ -10,8 +10,20 @@
 # Usage: bash /scripts/rfantibody_pipeline.sh
 # ============================================================================
 
-set -euo pipefail  # Exit on error
+set -euo pipefail # Exit on error
+SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 
+# Walk up until we find RFantibody
+ROOTDIR="$SCRIPT_DIR"
+while [[ "$ROOTDIR" != "/" && "$(basename "$ROOTDIR")" != "RFantibody" ]]; do
+  ROOTDIR="$(dirname "$ROOTDIR")"
+done
+
+if [[ "$(basename "$ROOTDIR")" != "RFantibody" ]]; then
+  echo "Error: Could not locate RFantibody root directory."
+  exit 1
+fi
 # ============================================================================
 # INPUT PARAMETERS // ARGUMENT PARSING DEFINITION
 # ============================================================================
@@ -314,7 +326,6 @@ $VERBOSE && {
 # ============================================================================
 
 # For ease of use, run everything using quiver instead of pdbs
-cd $HOMEDIR
 
 START_TIME="[$(date '+%Y-%m-%d %H:%M:%S')]"
 echo "${START_TIME} Pipeline started"

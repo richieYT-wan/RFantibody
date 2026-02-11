@@ -1,7 +1,18 @@
 #!/bin/bash
-set -euo pipefail  # Exit on error
-HOMEDIR="${HOME}/RFantibody"
-cd $HOMEDIR
+set -euo pipefail # Exit on error
+SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+
+# Walk up until we find RFantibody
+ROOTDIR="$SCRIPT_DIR"
+while [[ "$ROOTDIR" != "/" && "$(basename "$ROOTDIR")" != "RFantibody" ]]; do
+  ROOTDIR="$(dirname "$ROOTDIR")"
+done
+
+if [[ "$(basename "$ROOTDIR")" != "RFantibody" ]]; then
+  echo "Error: Could not locate RFantibody root directory."
+  exit 1
+fi
 source .venv/bin/activate
 
 echo "${HOMEDIR} START HOME DIR HERE"

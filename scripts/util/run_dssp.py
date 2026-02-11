@@ -1,7 +1,7 @@
 from __future__ import annotations
 import argparse
-import os, shutil, re, json
-from typing import Dict, List, Optional, Tuple
+import os
+from typing import Dict, Optional
 from Bio.PDB import PDBParser
 from Bio.PDB.DSSP import DSSP
 import pandas as pd
@@ -21,24 +21,21 @@ AA_MAP = {'A': 'ALA','C': 'CYS','D': 'ASP','E': 'GLU',
           'F': 'PHE','G': 'GLY','H': 'HIS','I': 'ILE',
           'K': 'LYS','L': 'LEU','M': 'MET','N': 'ASN',
           'P': 'PRO','Q': 'GLN','R': 'ARG','S': 'SER',
-          'T': 'THR','V': 'VAL','W': 'TRP','Y': 'TYR',
-         }
+          'T': 'THR','V': 'VAL','W': 'TRP','Y': 'TYR'}
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
     p.add_argument("-i", "--input", type=str, required=True, help="Input structure file (PDB)")
     p.add_argument("--pdb_id", type=str, required=False)
     p.add_argument("--model_number", type=int, default=0)
-
     # QoL: write results
     p.add_argument("--out_csv", type=str, default=None, help="Write per-residue DSSP table to CSV")
     p.add_argument('--chains', type=str, default="", help="Comma-separated chains to keep, e.g. A,B")
-    p.add_argument("--mkdssp", type=str, default="mkdssp", help="Path/name of mkdssp executable")
-
+    p.add_argument("--which_dssp", type=str, default="mkdssp", help="Path/name of mkdssp executable")
     return p.parse_args()
 
 def do_dssp(input_path: str, pdb_id: Optional[str]=None,
-            model_number: int = 0, mkdssp: str = "mkdssp"):
+            model_number: int = 0, which_dssp: str = "mkdssp"):
     """
 
     Args:
@@ -60,7 +57,7 @@ def do_dssp(input_path: str, pdb_id: Optional[str]=None,
 
     # fix for windows run...
 
-    return DSSP(model, input_path, dssp=mkdssp)
+    return DSSP(model, input_path, dssp=which_dssp)
 
 
 def dssp_to_df(dssp: DSSP, chains: str=None):
@@ -93,13 +90,12 @@ def dssp_to_df(dssp: DSSP, chains: str=None):
 def main():
     args = parse_args()
     chains = {c.strip() for c in args.chains.split(",") if c.strip()} or None
-    dssp = do_dssp(args.input, args.pdb_id, args.model_number)
+    dssp = do_dssp(args.input, args.pdb_id, args.model_number, args.which_dssp)
     dssp_df = dssp_to_df(dssp, chains)
     if args.out_csv is None:
         args.out_csv = os.path.join(os.path.dirname(args.input), f'{os.path.basename(args.input).split('.')[0]}_dssp.csv')
     dssp_df.to_csv(args.out_csv)
-
-
+    return 0
 
 if __name__=="__main__":
     main()

@@ -1,7 +1,19 @@
 #!/bin/bash
 set -euo pipefail  # Exit on error
-HOMEDIR="${HOME}/RFantibody"
-cd $HOMEDIR
+SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+
+# Walk up until we find RFantibody
+ROOTDIR="$SCRIPT_DIR"
+while [[ "$ROOTDIR" != "/" && "$(basename "$ROOTDIR")" != "RFantibody" ]]; do
+  ROOTDIR="$(dirname "$ROOTDIR")"
+done
+
+if [[ "$(basename "$ROOTDIR")" != "RFantibody" ]]; then
+  echo "Error: Could not locate RFantibody root directory."
+  exit 1
+fi
+
 source .venv/bin/activate
 
 # ex usage: bash test_pipeline_pdb.sh /path/to/input/processed/framework_HLT.pdb /path/to/input/target/target.pdb "H1:7,H2:6,H3:5-13" "B146,B170,B177" 5 10 10
