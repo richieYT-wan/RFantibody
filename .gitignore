@@ -16,4 +16,6 @@ dgl-2.4.0+cu118-cp310-cp310-manylinux1_x86_64.*
 *_report.txt
 dist
 *.sif
-./logs/*
+logs/*
+!logs/.gitkeep
+

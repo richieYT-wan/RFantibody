@@ -70,7 +70,15 @@ ensure_conda() {
   return 1
 }
 ensure_conda || exit 1
+# --- Initialise conda for non-interactive shell ---
+if ! type conda >/dev/null 2>&1; then
+  echo "Error: conda executable not found in PATH."
+  exit 1
+fi
 
+# Initialise shell integration activate environment
+eval "$(conda shell.bash hook)"
+conda activate ada
 
 usage() {
   cat <<EOF
@@ -185,7 +193,6 @@ if [[ -n $CHAINS ]]; then
   CHAIN_ARGS+=( --chains "$CHAINS")
 fi
 
-conda activate ada
 # Optional: runs DSSP
 if $RUN_DSSP; then
   OUTPUT_DSSP=${INPUT_PDB%.*}_dssp.csv
