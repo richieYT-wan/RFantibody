@@ -15,7 +15,7 @@ if [[ "$(basename "$ROOTDIR")" != "RFantibody" ]]; then
 fi
 source .venv/bin/activate
 
-echo "${HOMEDIR} START HOME DIR HERE"
+echo "${ROOTDIR} START HOME DIR HERE"
 echo "[START $(date '+%Y-%m-%d %H:%M:%S')] Script started; Format: Quiver"
 
 # ex usage: bash test_pipeline_pdb.sh /path/to/input/processed/framework_HLT.pdb /path/to/input/target/target.pdb "H1:7,H2:6,H3:5-13" "B146,B170,B177" 5 10 10
@@ -62,8 +62,8 @@ TG_BN="$(basename "$TARGET")"
 TG_BN="${TG_BN%.*}"
 NOW="$(date '+%y%m%d_%H%M%S')"
 FILENAME="${NOW}_TestRunQuiver_FW_${FW_BN}_TG_${TG_BN}"
-OUTDIR="${HOMEDIR}/outputs/${FILENAME}"
-LOGDIR="${HOMEDIR}/logs/${FILENAME}"
+OUTDIR="${ROOTDIR}/outputs/${FILENAME}"
+LOGDIR="${ROOTDIR}/logs/${FILENAME}"
 mkdir -p "${OUTDIR}" "${LOGDIR}"
 
 argslog() {

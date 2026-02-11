@@ -60,8 +60,8 @@ TG_BN="$(basename "$TARGET")"
 TG_BN="${TG_BN%.*}"
 NOW="$(date '+%y%m%d_%H%M%S')"
 FILENAME="${NOW}_TestRunPDB_FW_${FW_BN}_TG_${TG_BN}"
-OUTDIR="${HOMEDIR}/outputs/${FILENAME}"
-LOGDIR="${HOMEDIR}/logs/${FILENAME}"
+OUTDIR="${ROOTDIR}/outputs/${FILENAME}"
+LOGDIR="${ROOTDIR}/logs/${FILENAME}"
 mkdir -p "${OUTDIR}" "${LOGDIR}"
 
 argslog() {
