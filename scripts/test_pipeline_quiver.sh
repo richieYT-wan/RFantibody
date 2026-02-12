@@ -61,10 +61,9 @@ FW_BN="${FW_BN%.*}"
 TG_BN="$(basename "$TARGET")"
 TG_BN="${TG_BN%.*}"
 NOW="$(date '+%y%m%d_%H%M%S')"
-# Should include the hotspot in the filename here...
 FILENAME="${NOW}_TestRunQuiver_FW_${FW_BN}_TG_${TG_BN}"
 OUTDIR="${ROOTDIR}/outputs/${FILENAME}"
-LOGDIR="${OUTDIR}/logs/"
+LOGDIR="${ROOTDIR}/logs/${FILENAME}"
 mkdir -p "${OUTDIR}" "${LOGDIR}"
 
 argslog() {

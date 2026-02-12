@@ -182,7 +182,7 @@ fi
 mkdir -p \$(dirname $log_path)
 touch $log_path
 nohup bash "\$ROOTDIR/scripts/test_pipeline_quiver.sh" \\
-  -d 10 -s 10 -r 10 -c $CUDA \\
+  -d 25 -n 10 -r 10 -c $CUDA \\
   -l "H1:7,H2:5-7,H3:6-19" \\
   -f "$framework" \\
   -t "$target" \\
