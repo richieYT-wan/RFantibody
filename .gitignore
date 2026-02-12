@@ -18,4 +18,6 @@ dist
 *.sif
 logs/*
 !logs/.gitkeep
+scripts/quiver_jobs/*
+!scripts/quiver_jobs/README.txt
 
