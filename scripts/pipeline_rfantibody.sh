@@ -10,97 +10,58 @@
 # Usage: bash /scripts/rfantibody_pipeline.sh
 # ============================================================================
 
-set -euo pipefail # Exit on error
+set -euo pipefail  # Exit on error
 SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]}")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 
 # Walk up until we find RFantibody
-ROOTDIR="$SCRIPT_DIR"
-while [[ "$ROOTDIR" != "/" && "$(basename "$ROOTDIR")" != "RFantibody" ]]; do
-  ROOTDIR="$(dirname "$ROOTDIR")"
+ROOT_DIR="$SCRIPT_DIR"
+while [[ "$ROOT_DIR" != "/" && "$(basename "$ROOT_DIR")" != "RFantibody" ]]; do
+  ROOT_DIR="$(dirname "$ROOT_DIR")"
 done
 
-if [[ "$(basename "$ROOTDIR")" != "RFantibody" ]]; then
+if [[ "$(basename "$ROOT_DIR")" != "RFantibody" ]]; then
   echo "Error: Could not locate RFantibody root directory."
   exit 1
 fi
+
+source .venv/bin/activate
+
 # ============================================================================
 # INPUT PARAMETERS // ARGUMENT PARSING DEFINITION
 # ============================================================================
 
-# Default parameters handling before parsing.
-# TODO: Make a script to wget raw PDB structures from RCSB, convert them to Chothia then to HLT?
-# TODO: Make a script to wget a SAbDab Chothia PDB structure, convert them to HLT
-# TODO: Make a script to wget target structures ? (low-priority for now)
 
 # RFdiffusion parameters
-FRAMEWORK=""              # TO BE PARSED required; RFAntibody expects frameworks in "HLT" format, which is created using from a Chothia-annotated PDB using ./scripts/util/chothia2HLT.py
-TARGET=""                 # TO BE PARSED required;
-OUTPUTDIR="run_000"          # name of the output directory. ex: "run_cd33_001" will write outputs in "${HOMEDIR}outputs/run_cd33_001/"
-N_DESIGNS=100             # Number of designs to generate (default: 100 backbones)
-DIFFUSER_T=50             # Diffusion time-steps (default: 50)
-DESIGN_LOOPS="H1:7,H2:6,H3:6-20"           # Loops to design with or without length;
-                          # ex: "H1:7,H2:6,H3:5-13" to make H1,H2,H3 loops with lengths 7, 6 and ranging 5 to 13
-HOTSPOTS=""               # Hotspot residues on target, uses the target chain identifier; ex: "B107,B112,B115" (empty means not used)
+FRAMEWORK=""                               # TO BE PARSED required; RFAntibody expects frameworks in "HLT" format
+                                           # created using from a Chothia-annotated PDB using
+                                           # ./scripts/util/convert_chothia2hlt_antibody.sh
+TARGET=""                                  # TO BE PARSED required;
+                                           # created using from a RCSB PDB using
+                                           # ./scripts/util/pipeline_clean_target.sh
+OUTPUT_NAME=""                             # a custom name of the run directory. ex: "run_cd33_001" will
+                                           # write outputs in "<ROOT_DIR>/outputs/<TIMESTAMP>_run_cd33_001/ (default: autogenerates a timestamp and name based on inputs (framework, target, hotspot))
+N_DESIGN=25                               # Number of designs to generate (default: 100 backbones)
+DIFFUSER_T=50                              # Diffusion time-steps (default: 50)
+DESIGN_LOOPS="H1,H2,H3"                    # Loops to design with or without length;
+                                           # ex: "H1:7,H2:6,H3:5-13" to make H1,H2,H3 loops with lengths 7, 6 and ranging 5 to 13
+HOTSPOTS=""                                # Hotspot residues on target, uses the target chain identifier;
+                                           # ex: "A149,A151,A154" (empty means not used)
+
 # ProteinMPNN parameters ; missing : --augment-eps FLOAT --> backbone noise augmentation
 LOOPS=$(echo "$DESIGN_LOOPS" | sed 's/:[^,]*//g') # Parses the DESIGN_LOOPS and removes lengths
-N_SEQS=10                  # Number of sequences to generate per backbone (default: 10 seqs / backbone)
-TEMP=0.2                  # ProteinMPNN sampling temp (default: 0.2)
+N_SEQUENCE=10                                  # Number of sequences to generate per backbone (default: 10 seqs / backbone)
+TEMP=0.2                                   # ProteinMPNN sampling temp (default: 0.2)
+
+
 # RF2 parameters ;
-N_RECYCLES=10             # Number of recycling steps in RF2 (default: 10)
-RF2_SEED=""                # RF2 seed for reproducibility (Optional: empty string means do not use, otherwise integer)
-HOTSPOT_PROP=0.1          # Proportion of hotspot residues to show to model (default: 0.1)
+N_RECYCLE=10                              # Number of recycling steps in RF2 (default: 10)
+RF2_SEED=""                                # RF2 seed for reproducibility (Optional: int, empty means do not use)
+HOTSPOT_PROP=0.1                           # Proportion of hotspot residues to show to model (default: 0.1)
 
-#!/usr/bin/env bash
-set -euo pipefail
-
-echo $0
-# ============================================================================
-# USAGE + ERROR HANDLING
-# ============================================================================
-
-usage() {
-  cat <<'EOF'
-Usage:
-  pipeline_rfantibody.sh --framework FRAMEWORK_HLT.pdb --target TARGET.pdb --output-dir RUN_NAME [options]
-
-Required arguments:
-  --framework PATH        VHH framework in HLT format (from Chothia PDB)
-  --target PATH           Target structure (PDB; cleaned recommended)
-  --output-dir NAME       Run/output directory name (ex: run_cd33_001)
-  --rfdiff-det STR        true
-Optional arguments:
-  --n-designs INT         Number of backbones to generate (default: 100)
-  --diffuser-t INT        RFdiffusion timesteps (default: 50)
-  --design-loops STR      Loops to design with lengths (default: H1:7,H2:6,H3:6-20)
-                          Example: "H1:7,H2:6,H3:5-13"
-  --hotspots STR          Hotspot residues on target (default: empty/off)
-                          Example: "B107,B112,B115"
-
-  --n-seqs INT            Sequences per backbone (default: 10)
-  --temp FLOAT            ProteinMPNN sampling temperature (default: 0.2)
-
-  --n-recycles INT        RF2 recycle steps (default: 10)
-  --rf2-seed INT          RF2 seed (optional; default: empty/unset)
-  --hotspot-prop FLOAT    Fraction of hotspots shown to RF2 (default: 0.1)
-
-Flags:
-  --dry-run               Print actions, do not execute heavy steps
-  -v, --verbose           Verbose logging
-  -h, --help              Show this help and exit
-
-Example:
-  run_rfantibody.sh \
-    --framework inputs/framework/processed/vhh_HLT.pdb \
-    --target inputs/target/3EAK_clean.pdb \
-    --output-dir run_3EAK_001 \
-    --design-loops "H1:7,H2:6,H3:5-13" \
-    --hotspots "A123,A125,A130" \
-    --n-designs 200 \
-    --n-seqs 20 \
-    --rf2-seed 42
-EOF
-}
+# Other flags ?
+FORMAT="qv"                                # format to use for inputs/outputs (qv or pdb)
+CUDA_DEVICE=0                              # which cuda gpu to use (default: 0, int)
 
 die() {
   echo "ERROR: $*" >&2
@@ -109,60 +70,68 @@ die() {
   exit 1
 }
 
-# ============================================================================
-# DEFAULT PARAMETERS
-# ============================================================================
-
-FRAMEWORK=""                        # To be parsed, RFAb expects fw in HLT format (generated from a Chothia-annotated PDB using ./scripts/util/chothia2HLT)
-TARGET=""                           # To be parsed, target PDB
-OUTPUTDIR="run_000"                 # name of the output directory. ex: "run_cd33_001" will write outputs in "${HOMEDIR}outputs/run_cd33_001/"
-
-# RFdiffusion
-N_DESIGNS=100                       # Number of designs to generate (def: 100 backbones)
-DIFFUSER_T=50                       # RFdiff diffuser Timestep (def: 50)
-DESIGN_LOOPS="H1:7,H2:6,H3:6-20"    # Loops to make (with or without lengths)
-HOTSPOTS=""                         # Hotspot residues (target chain name + number)
-
-# ProteinMPNN
-N_SEQS=10                           # Seqs to generate per backbone
-TEMP=0.2                            # ProteinMPNN temperature param
-
-# RF2
-N_RECYCLES=10                       # recycling steps (RF2)
-RF2_SEED=""                         # Seed for reproducibility in RF2
-HOTSPOT_PROP=0.1
-
-# flags
-DRY_RUN=false
-VERBOSE=false
-DETERMINISTIC=false                 # enable deterministic mode for rfdiff and proteinmpnn
 
 # ============================================================================
 # ARGUMENT PARSING
 # ============================================================================
 
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") -f FRAMEWORK -t TARGET [OPTIONS]
+
+Full Nanobody Design Pipeline using RFdiffusion, ProteinMPNN, and RF2.
+
+Required Arguments:
+  -f, --framework FILE      Path to framework file (HLT format)
+  -t, --target FILE         Path to target file (cleaned PDB format from script)
+
+RFdiffusion Options:
+  -o, --output-name STR     Custom name for the run directory (default: auto)
+  --n-designs INT           Number of backbones to generate (default: 25)
+  --diffuser-t INT          Diffusion time-steps (default: 50)
+  --design-loops STR        Loops and lengths to design (e.g., "H1:7,H2:6,H3:5-13" or "H1:,H2:,H3:)
+  --hotspots STR            Target hotspots (e.g., "A149,A150,A151")
+
+ProteinMPNN Options:
+  --n-seqs INT              Sequences per backbone (default: 10)
+  --temp FLOAT              Sampling temperature (default: 0.2)
+
+RF2 Options:
+  --n-recycles INT          Number of recycling steps (default: 10)
+  --rf2-seed INT            Seed for reproducibility
+  --hotspot-prop FLOAT      Proportion of hotspots shown to model (default: 0.1)
+
+Other Options:
+  --format STR              Input/output format: qv or pdb (default: qv)
+  --cuda-device INT         GPU device ID (default: 0)
+  -h, --help                Show this help message
+EOF
+}
+
+repro_cmd_exact=( "$0" "$@" )
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --framework)
+    -f | --framework)
       [[ $# -ge 2 ]] || die "$1 requires a value"
       FRAMEWORK="$2"
       shift 2
       ;;
-    --target)
+    -t | --target)
       [[ $# -ge 2 ]] || die "$1 requires a value"
       TARGET="$2"
       shift 2
       ;;
-    --output-dir)
+    -o | --output-name)
       [[ $# -ge 2 ]] || die "$1 requires a value"
-      OUTPUTDIR="$2"
+      OUTPUT_NAME="$2"
       shift 2
       ;;
 
     # RFdiffusion
     --n-designs)
       [[ $# -ge 2 ]] || die "$1 requires a value"
-      N_DESIGNS="$2"
+      N_DESIGN="$2"
       shift 2
       ;;
     --diffuser-t)
@@ -184,7 +153,7 @@ while [[ $# -gt 0 ]]; do
     # ProteinMPNN
     --n-seqs)
       [[ $# -ge 2 ]] || die "$1 requires a value"
-      N_SEQS="$2"
+      N_SEQUENCE="$2"
       shift 2
       ;;
     --temp)
@@ -196,7 +165,7 @@ while [[ $# -gt 0 ]]; do
     # RF2
     --n-recycles)
       [[ $# -ge 2 ]] || die "$1 requires a value"
-      N_RECYCLES="$2"
+      N_RECYCLE="$2"
       shift 2
       ;;
     --rf2-seed)
@@ -211,17 +180,16 @@ while [[ $# -gt 0 ]]; do
       ;;
 
     # Other flags
-    --dry-run)
-      DRY_RUN=true
-      shift 1
+    --format)
+      [[ $# -ge 2 ]] || die "$1 requires a value"
+      [[ $2 == "pdb" || $2 == "qv" ]] || { echo "Invalid --format $2. Must be qv or pdb"; die; }
+      FORMAT="$2"
+      shift 2
       ;;
-    --deterministic)
-      DETERMINISTIC=true
-      shift 1
-      ;;
-    -v|--verbose)
-      VERBOSE=true
-      shift 1
+    --cuda-device)
+      [[ $# -ge 2 ]] || die "$1 requires a value"
+      CUDA_DEVICE="$2"
+      shift 2
       ;;
     -h|--help)
       usage
@@ -239,158 +207,145 @@ done
 
 [[ -z "$FRAMEWORK" ]] && die "--framework is required"
 [[ -z "$TARGET" ]]    && die "--target is required"
-[[ -z "$OUTPUTDIR" ]] && die "--output-dir is required"
-
 [[ ! -f "$FRAMEWORK" ]] && die "Framework file not found: $FRAMEWORK"
 [[ ! -f "$TARGET" ]]    && die "Target file not found: $TARGET"
+
+# Set CUDA device:
+export CUDA_VISIBLE_DEVICES=$CUDA_DEVICE
+
+# ============================================================================
+# PATHS SETTING AND OUTPUT LAYOUT + REPRODUCIBLE command.txt
+# ============================================================================
+# Create the output directory for the run
+NOW="$(date '+%y%m%d_%H%M%S')"
+# If no custom output name is provided, create it based on the input framework, target and hotspot as minimal identifier
+if [[ ! -n $OUTPUT_NAME ]]; then
+  echo "here"
+  FW_BN="$(basename "$FRAMEWORK")"
+  FW_BN="${FW_BN%.*}"
+  TG_BN="$(basename "$TARGET")"
+  TG_BN="${TG_BN%.*}"
+  # Should include the hotspot in the filename here...
+  CLEAN_HOTSPOTS="${HOTSPOTS//,/}"
+  FILENAME="${NOW}_run${FORMAT}_fw${FW_BN}_tg${TG_BN}_hs${CLEAN_HOTSPOTS}"
+else
+  FILENAME="${NOW}_${OUTPUT_NAME}"
+fi
+SCRIPT_DIR="${ROOT_DIR}/scripts"
+OUTPUT_DIR="${ROOT_DIR}/outputs/${FILENAME}"
+LOGS_DIR="${OUTPUT_DIR}/logs"
+mkdir -p "${OUTPUT_DIR}" "${LOGS_DIR}"
+
+# Reconstruct a reproducible command line (includes only non-defaults for brevity)
+#repro_cmd=( "$0"
+#  --framework "$FRAMEWORK"
+#  --target "$TARGET"
+#)
+## include non-defaults
+#[[ "$OUTPUT_NAME"    != "25" ]] && repro_cmd+=( --output-name "$OUTPUT_NAME" )
+#[[ "$N_DESIGN"    != "25" ]] && repro_cmd+=( --n-designs "$N_DESIGN" )
+#[[ "$DIFFUSER_T"   != "50"  ]] && repro_cmd+=( --diffuser-t "$DIFFUSER_T" )
+#[[ "$DESIGN_LOOPS" != "H1:,H2:,H3:" ]] && repro_cmd+=( --design-loops "$DESIGN_LOOPS" )
+#[[ -n "$HOTSPOTS" ]] && repro_cmd+=( --hotspots "$HOTSPOTS" )
+#[[ "$N_SEQUENCE"       != "10"  ]] && repro_cmd+=( --n-seqs "$N_SEQUENCE" )
+#[[ "$TEMP"         != "0.2" ]] && repro_cmd+=( --temp "$TEMP" )
+#[[ "$N_RECYCLE"   != "10"  ]] && repro_cmd+=( --n-recycles "$N_RECYCLE" )
+#[[ -n "$RF2_SEED" ]] && repro_cmd+=( --rf2-seed "$RF2_SEED" )
+#[[ "$HOTSPOT_PROP" != "0.1" ]] && repro_cmd+=( --hotspot-prop "$HOTSPOT_PROP" )
+
+# Write command.txt with timestamp + resolved paths
+{
+  echo "# Generated: $(date -Is)"
+  echo "# Run dir:   ${OUTPUT_DIR}"
+  echo "# Host:      $(hostname)"
+  echo "# PWD:       ${ROOT_DIR}"
+  echo
+  printf '%q ' "${repro_cmd_exact[@]}"
+  echo
+} > "${LOGS_DIR}/command.txt"
+
+echo "Wrote ${LOGS_DIR}/command.txt"
+
+
+# ============================================================================
+# Args handling and commands creation + running
+# ============================================================================
+
+# Generate hotspot and loops args
+HOTSPOT_ARGS=()
+if [[ -n "$HOTSPOTS" ]]; then
+  HOTSPOT_ARGS=(-h "$HOTSPOTS")
+fi
 
 
 # ProteinMPNN parameter derived from the # of loops inputted into RFdiffusion
 LOOPS=$(echo "$DESIGN_LOOPS" | sed 's/:[^,]*//g')
 
-# ============================================================================
-# OUTPUT LAYOUT + REPRODUCIBLE command.txt
-# ============================================================================
-# Path to RFantibody within ab-develop repo (ex: /user/username/ab-develop/projects/uc_denovo_vhh/RFantibody/)
-echo $0
-HOMEDIR="$(pwd)/../"
-SCRIPTDIR="${HOMEDIR}/scripts/"
-RUNDIR="${HOMEDIR}/outputs/${OUTPUTDIR}"
-LOGDIR="${RUNDIR}/logs/"
-mkdir -p "$RUNDIR"
+# Different format handling
+if [[ $FORMAT == "qv" ]]; then
+  RFDIFF_CMD="rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTPUT_DIR}/01_rfdiffusion.qv -n ${N_DESIGN} -l ${DESIGN_LOOPS} --diffuser-t ${DIFFUSER_T} ${HOTSPOT_ARGS[*]} > ${LOGS_DIR}/01_DIFFUSION.log 2>&1"
+  PROTEINMPNN_CMD="proteinmpnn --input-quiver ${OUTPUT_DIR}/01_rfdiffusion.qv --output-quiver ${OUTPUT_DIR}/02_sequences.qv -l ${LOOPS} -n ${N_SEQUENCE} > ${LOGS_DIR}02_PROTEINMPNN.log 2>&1"
+  RF2_CMD="rf2 --input-quiver ${OUTPUT_DIR}/02_sequences.qv --output-quiver ${OUTPUT_DIR}/03_RF2_folds.qv -r ${N_RECYCLE} > ${LOGS_DIR}/03_RF2.log 2>&1"
+elif [[ $FORMAT == "pdb" ]]; then
+  RFDIFF_CMD="rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTPUT_DIR}/01_rfdiffusion/design -n ${N_DESIGN} -l ${DESIGN_LOOPS} --diffuser-t ${DIFFUSER_T} ${HOTSPOT_ARGS[*]} > ${LOGS_DIR}/01_DIFFUSION.OG 2>&1"
+  PROTEINMPNN_CMD="proteinmpnn -i ${OUTPUT_DIR}/01_rfdiffusion/ -o ${OUTPUT_DIR}/02_sequences/ -l ${LOOPS} -n ${N_SEQUENCE} > ${LOGS_DIR}02_PROTEINMPNN.log 2>&1"
+  RF2_CMD="rf2 -i ${OUTPUT_DIR}/02_sequences/ -o ${OUTPUT_DIR}/03_RF2_folds/ -r ${N_RECYCLE} > ${LOGS_DIR}/03_RF2.log 2>&1"
+fi
 
-# Reconstruct a reproducible command line (includes only non-defaults for brevity)
-repro_cmd=( "$0"
-  --framework "$FRAMEWORK"
-  --target "$TARGET"
-  --output-dir "$OUTPUTDIR"
-)
+START_TIME=$(date '+%Y-%m-%d %H:%M:%S')
 
-# include non-defaults
-[[ "$N_DESIGNS"    != "100" ]] && repro_cmd+=( --n-designs "$N_DESIGNS" )
-[[ "$DIFFUSER_T"   != "50"  ]] && repro_cmd+=( --diffuser-t "$DIFFUSER_T" )
-[[ "$DESIGN_LOOPS" != "H1:7,H2:6,H3:6-20" ]] && repro_cmd+=( --design-loops "$DESIGN_LOOPS" )
-[[ -n "$HOTSPOTS" ]] && repro_cmd+=( --hotspots "$HOTSPOTS" )
-[[ "$N_SEQS"       != "10"  ]] && repro_cmd+=( --n-seqs "$N_SEQS" )
-[[ "$TEMP"         != "0.2" ]] && repro_cmd+=( --temp "$TEMP" )
-[[ "$N_RECYCLES"   != "10"  ]] && repro_cmd+=( --n-recycles "$N_RECYCLES" )
-[[ -n "$RF2_SEED" ]] && repro_cmd+=( --rf2-seed "$RF2_SEED" )
-[[ "$HOTSPOT_PROP" != "0.1" ]] && repro_cmd+=( --hotspot-prop "$HOTSPOT_PROP" )
-$DRY_RUN   && repro_cmd+=( --dry-run )
-$VERBOSE   && repro_cmd+=( --verbose )
-
-# Write command.txt with timestamp + resolved paths
-{
-  echo "# Generated: $(date -Is)"
-  echo "# Run dir:   $RUNDIR"
-  echo "# Host:      $(hostname)"
-  echo "# PWD:       $HOMEDIR"
-  echo
-  printf '%q ' "${repro_cmd[@]}"
-  echo
-} > "${RUNDIR}/command.txt"
-
-$VERBOSE && echo "Wrote ${RUNDIR}/command.txt"
-
-# ============================================================================
-# CONFIRMATION (optional)
-# ============================================================================
-
-$VERBOSE && {
-  echo "FRAMEWORK      = $FRAMEWORK"
-  echo "TARGET         = $TARGET"
-  echo "OUTPUTDIR     = $OUTPUTDIR"
-  echo "RUNDIR        = $RUNDIR"
-  echo "N_DESIGNS      = $N_DESIGNS"
-  echo "DIFFUSER_T     = $DIFFUSER_T"
-  echo "DESIGN_LOOPS   = $DESIGN_LOOPS"
-  echo "LOOPS          = $LOOPS"
-  echo "HOTSPOTS       = $HOTSPOTS"
-  echo "N_SEQS         = $N_SEQS"
-  echo "TEMP           = $TEMP"
-  echo "N_RECYCLES     = $N_RECYCLES"
-  echo "RF2_SEED       = $RF2_SEED"
-  echo "HOTSPOT_PROP   = $HOTSPOT_PROP"
-  echo "DRY_RUN        = $DRY_RUN"
-  echo "VERBOSE        = $VERBOSE"
+rfdlog() {
+  echo "[START $START_TIME] Script started; Format: PDB"
+  echo ""
+  echo "******************"
+  echo "Starting pipeline"
+  echo "******************"
+  echo ""
+  echo "=============================================="
+  echo "Step 1/3: RFdiffusion with $N_DESIGN designs, $DESIGN_LOOPS Design Loops and $HOTSPOTS Hotspots"
+  echo "=============================================="
+  echo ""
+  echo $RFDIFF_CMD
 }
+rfdlog >> "${LOGS_DIR}/run.log"
 
-# ============================================================================
-# (rest of your pipeline goes here)
-# Use: $RUNDIR as the root output path
-# ============================================================================
+$RFDIFF_CMD
 
+pmpnnlog(){
+  echo ""
+  echo "=============================================="
+  echo "Step 2/3: ProteinMPNN with $N_SEQUENCE sequences"
+  echo "=============================================="
+  echo ""
+  echo $PROTEINMPNN_CMD
+}
+pmpnnlog
+pmpnnlog >> "${LOGS_DIR}/run.log"
 
-# ============================================================================
-# Running RFdiffusion
-# ============================================================================
+$PROTEINMPNN_CMD
 
-# For ease of use, run everything using quiver instead of pdbs
+rf2log(){
+  echo ""
+  echo "=============================================="
+  echo "Step 3/3: RF2 with $N_RECYCLE recycling steps"
+  echo "=============================================="
+  echo ""
+  echo $RF2_CMD
+}
+rf2log
+rf2log >> "${LOGS_DIR}/run.log"
 
-START_TIME="[$(date '+%Y-%m-%d %H:%M:%S')]"
-echo "${START_TIME} Pipeline started"
-source .venv/bin/activate
+$RF2_CMD
 
-echo ""
-echo "[Step 1/3] Running RFdiffusion"
-echo "  - Generating $N_DESIGNS backbones"
-echo "  - Loops: $DESIGN_LOOPS"
-echo "  - Hotspots: $HOTSPOTS"
+END_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+endlog(){
+    echo ""
+    echo "******************"
+    echo "Pipeline done"
+    echo "******************"
+    echo ""
+    echo "[END   $END_TIME] Script finished in $FORMAT"
+}
+endlog
+endlog >> "${LOGS_DIR}/run.log"
 
-#rfdiffusion -t ${TARGET} -f ${FRAMEWORK} --output-quiver "${RUNDIR}/00_diffusion_backbones.qv" -n ${N_DESIGNS} -l ${DESIGN_LOOPS} -h ${HOTSPOTS} --diffuser-t ${DIFFUSER_T} > "${LOGDIR}/00_diffusion.log" 2>&1
-
-echo "# ============================================================================"
-echo "TESTING RFDIFF PARAMS"
-echo " -t ${TARGET} -f ${FRAMEWORK} --output-quiver ${RUNDIR}/00_diffusion_backbones.qv -n ${N_DESIGNS} -l ${DESIGN_LOOPS} -h ${HOTSPOTS} --diffuser-t ${DIFFUSER_T} > ${LOGDIR}/00_diffusion.log"
-echo "# ============================================================================"
-
-echo "[Step 1/3] RFdiffusion complete"
-
-# ============================================================================
-# Running ProteinMPNN
-# ============================================================================
-echo ""
-echo "[Step 2/3] Running ProteinMPNN"
-echo "  - Generating $N_SEQS sequences per backbone"
-echo "  - Sampling temperature: $TEMP"
-
-#proteinmpnn --input-quiver "${RUNDIR}/00_diffusion.qv" --output-quiver "${RUNDIR}/01_pmpnn_sequences.qv" -l ${LOOPS} -n ${N_SEQS} > "${RUNDIR}/01_proteinmpnn_seq.log" 2>&1
-
-
-echo "# ============================================================================"
-
-echo "TESTING proteinmpnn PARAMS"
-echo "proteinmpnn --input-quiver ${RUNDIR}/00_diffusion.qv --output-quiver ${RUNDIR}/01_pmpnn_sequences.qv -l ${LOOPS} -n ${N_SEQS} > ${RUNDIR}/01_proteinmpnn_seq.log"
-echo "# ============================================================================"
-
-
-echo "[Step 2/3] ProteinMPNN complete"
-
-
-# ============================================================================
-# Running RF2
-# ============================================================================
-echo ""
-echo "[Step 3/3] Running RoseTTAFold2"
-echo "  - Refining structures with $N_RECYCLES recycles"
-
-#rf2 --input-quiver "${RUNDIR}/01_sequences.qv" --output-quiver "${RUNDIR}/02_rf2_predictions.qv" --hotspot-show-prop ${HOTSPOT_PROP} --num-recycles $N_RECYCLES > "${RUNDIR}/02_rf2_predictions.log" 2>&1
-echo "# ============================================================================"
-
-echo "TESTING proteinmpnn PARAMS"
-echo "--input-quiver ${RUNDIR}/01_sequences.qv --output-quiver ${RUNDIR}/02_rf2_predictions.qv --hotspot-show-prop ${HOTSPOT_PROP} --num-recycles $N_RECYCLES > ${RUNDIR}/02_rf2_predictions.log"
-echo "# ============================================================================"
-
-echo "[Step 3/3] RF2 complete"
-
-echo "=============================================="
-echo "[All steps complete]"
-echo "  - All outputs are saved at ${RUNDIR}"
-echo "  - List backbones with:  uv run qvls ${RUNDIR}/00_diffusion_backbones.qv"
-echo "  - List results with:    uv run qvls ${RUNDIR}/02_rf2_predictions.qv"
-echo "  - Extract PDBs with:    uv run qvextract ${RUNDIR}/02_rf2_predictions.qv <output_dir>"
-echo ""
-echo "=============================================="
-
-END_TIME="[$(date '+%Y-%m-%d %H:%M:%S')]"
-echo "${END_TIME} Pipeline complete"
