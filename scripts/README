@@ -1,1 +1,24 @@
 This is where all of the scripts to call parts of the pipeline will go
+
+# 2026.02; Author: Yat-Tsai Richie Wan
+# New scripts for various parts of the input/output/pipelines handling
+# The python scripts exist to be called by the bash scripts
+# RFantibody's authors suggest using the .qv format to make it more manageable
+# and not generate potentially hundreds of files per run (see RFantibody/README).
+
+RFantibody/
+├─ scripts/
+│  ├─ util/
+│  │  ├─ clean_target_pdb.py
+│  │  ├─ make_patch_quiver_script.sh
+│  │  ├─ parse_output.py
+│  │  ├─ run_dssp.py
+│  ├─ convert_chothia2hlt_antibody.sh # pipeline to prepare input framework
+│  ├─ convert_chothia2hlt_nanobody.sh # pipeline to prepare input framework
+│  ├─ parse_output.sh                 # Prepares outputs to csv table
+│  ├─ pipeline_clean_target.sh        # pipeline to prepare input target
+│  ├─ pipeline_rfantibody.sh          # full pipeline that runs with most modularity
+│  ├─ test_pipeline_pdb.sh            # minimal pipeline that runs with few options
+│  ├─ test_pipeline_quiver.sh         # minimal pipeline that runs with few options
+│  ├─ quiver_jobs/*                   # jobs created by make_patch_quiver_script.sh
+

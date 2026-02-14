@@ -236,23 +236,6 @@ OUTPUT_DIR="${ROOT_DIR}/outputs/${FILENAME}"
 LOGS_DIR="${OUTPUT_DIR}/logs"
 mkdir -p "${OUTPUT_DIR}" "${LOGS_DIR}"
 
-# Reconstruct a reproducible command line (includes only non-defaults for brevity)
-#repro_cmd=( "$0"
-#  --framework "$FRAMEWORK"
-#  --target "$TARGET"
-#)
-## include non-defaults
-#[[ "$OUTPUT_NAME"    != "25" ]] && repro_cmd+=( --output-name "$OUTPUT_NAME" )
-#[[ "$N_DESIGN"    != "25" ]] && repro_cmd+=( --n-designs "$N_DESIGN" )
-#[[ "$DIFFUSER_T"   != "50"  ]] && repro_cmd+=( --diffuser-t "$DIFFUSER_T" )
-#[[ "$DESIGN_LOOPS" != "H1:,H2:,H3:" ]] && repro_cmd+=( --design-loops "$DESIGN_LOOPS" )
-#[[ -n "$HOTSPOTS" ]] && repro_cmd+=( --hotspots "$HOTSPOTS" )
-#[[ "$N_SEQUENCE"       != "10"  ]] && repro_cmd+=( --n-seqs "$N_SEQUENCE" )
-#[[ "$TEMP"         != "0.2" ]] && repro_cmd+=( --temp "$TEMP" )
-#[[ "$N_RECYCLE"   != "10"  ]] && repro_cmd+=( --n-recycles "$N_RECYCLE" )
-#[[ -n "$RF2_SEED" ]] && repro_cmd+=( --rf2-seed "$RF2_SEED" )
-#[[ "$HOTSPOT_PROP" != "0.1" ]] && repro_cmd+=( --hotspot-prop "$HOTSPOT_PROP" )
-
 # Write command.txt with timestamp + resolved paths
 {
   echo "# Generated: $(date -Is)"

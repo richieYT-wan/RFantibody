@@ -15,6 +15,11 @@ if [[ "$(basename "$ROOT_DIR")" != "RFantibody" ]]; then
   exit 1
 fi
 
+source ~/.bashrc
+conda activate ada
+# Stupid python fix for Workstation
+PYTHON="$(which python)"
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -31,13 +36,14 @@ die() { echo "ERROR: $*" >&2; usage >&2; exit 1; }
 
 RESULTS_PATH=""
 FORMAT=""
-OUTFILE="parsed_outputs.tsv"
-
+OUTFILE="parsed_outputs.csv"
+N_JOBS=-1
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -i|--results_path) RESULTS_PATH="$2"; shift 2 ;;
     --format) FORMAT="$2"; shift 2 ;;
     -o|--outfile) OUTFILE="$2"; shift 2 ;;
+    --n-jobs) N_JOBS="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) die "Unknown option: $1" ;;
   esac
@@ -53,6 +59,10 @@ done
 PDB_DIR=""
 SCORES_PATH=""
 
+RES_DIR="$(cd "$(dirname "$RESULTS_PATH")" && pwd)"
+ORIG_FILENAME="$(basename ${RES_DIR})"
+echo "$ORIG_FILENAME"
+OUTFILE="${RES_DIR}/${OUTFILE}"
 if [[ "$FORMAT" == "qv" ]]; then
   # Go to the rootdir and activate to get the right venv to run qv commands
   cd $ROOT_DIR
@@ -69,7 +79,7 @@ if [[ "$FORMAT" == "qv" ]]; then
   mkdir -p "$EXTRACT_DIR"
 
   echo "Extracting PDBs from QV -> $EXTRACT_DIR"
-  qvextract -i "$RESULTS_PATH" -o "$EXTRACT_DIR"
+  qvextract "$RESULTS_PATH" -o "$EXTRACT_DIR" # --force
 
   # qvscorefile writes outputs relative to where it is called
   echo "Scoring QV -> ${QV_BN%.*}.sc"
@@ -81,11 +91,15 @@ if [[ "$FORMAT" == "qv" ]]; then
 
   PDB_DIR="$EXTRACT_DIR"
   # Here call a python script to handle the output parsing and CSV generation
-  python3 "${ROOT_DIR}/scripts/util/parse_output.py" --pdb-dir "$PDB_DIR" --scores "$SCORES_PATH" -o "$OUTFILE"
+  echo "Running python parsing script and saving results"
+  # Original filename is used to parse settings (from auto naming in pipeline_rfantibody or custom job name)
+  $PYTHON "${ROOT_DIR}/scripts/util/parse_output.py" --original_filename $ORIG_FILENAME --pdb-dir "$PDB_DIR" --scores "$SCORES_PATH" -o "$OUTFILE" --n_jobs $N_JOBS
 
 else
   [[ -d "$RESULTS_PATH" ]] || die "PDB directory not found: $RESULTS_PATH"
   PDB_DIR="$(cd "$RESULTS_PATH" && pwd)"
-  python3 "${ROOT_DIR}/scripts/util/parse_output.py" --pdb-dir "$PDB_DIR" -o "$OUTFILE
+  echo "Running python parsing script and saving results"
+  $PYTHON "${ROOT_DIR}/scripts/util/parse_output.py" --original_filename $ORIG_FILENAME --pdb-dir "$PDB_DIR" -o "$OUTFILE"--n_jobs $N_JOBS
 fi
 
+echo "Saved output CSV table at $OUTFILE"

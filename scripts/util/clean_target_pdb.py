@@ -11,6 +11,7 @@ This script parses a target PDB file (raw pdb),
 trims it and removes ligands so that RFantibody can run.
 Ligands and occluded residues (e.g. bound by or near ligands (Threshold<=4Å)
 are marked in the REMARK section of the processed pdb file.
+Also marks residues that are potentially available as hotspots based on DSSP RSA computed values
 
 Additions:
 - Optional DSSP CSV input (from run_dssp.py) to suggest "hotspot" residues:

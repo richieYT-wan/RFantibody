@@ -21,3 +21,4 @@ logs/*
 scripts/quiver_jobs/*
 !scripts/quiver_jobs/README.txt
 
+scripts/util/test.sh
