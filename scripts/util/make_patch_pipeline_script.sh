@@ -4,10 +4,10 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  bash scripts/util/make_patch_quiver_script.sh -f <framework.pdb> -t <target_processed.pdb> -T <threshold> [-S A148]
+  bash scripts/util/make_patch_quiver_script.sh -f <framework.pdb> -t <target_processed.pdb> -T <threshold> -c <cuda_device> -n <custom_name> [-S A148]
 
 Generates one runnable script per hotspot triplet patch into:
-  RFantibody/scripts/quiver_jobs/
+  RFantibody/scripts/rfantibody_jobs/
 
 Patch criteria:
 - same chain
@@ -24,6 +24,7 @@ target=""
 start_spec=""
 threshold=""
 CUDA=0
+CUSTOM_NAME=""
 while getopts ":f:t:S:T:h:c:" opt; do
   case "$opt" in
     f) framework="$OPTARG" ;;
@@ -31,7 +32,7 @@ while getopts ":f:t:S:T:h:c:" opt; do
     S) start_spec="$OPTARG" ;;
     T) threshold="$OPTARG" ;;
     c) CUDA="$OPTARG" ;;
-    n) CUSTON_NAME="$OPTARG" ;;
+    # n) CUSTON_NAME="$OPTARG" ;;
     h) usage ;;
     \?) usage ;;
     :) usage ;;
@@ -47,7 +48,7 @@ done
 # validate threshold is numeric
 gawk -v T="$threshold" 'BEGIN{ if (T+0 != T) exit 1 }' || { echo "ERROR: -T must be numeric (e.g. 1.5)" >&2; exit 2; }
 
-OUTDIR="./scripts/quiver_jobs"
+OUTDIR="./scripts/rfantibody_jobs"
 LOGDIR="$OUTDIR/logs"
 mkdir -p "$OUTDIR" "$LOGDIR"
 
@@ -156,6 +157,12 @@ while IFS= read -r patch; do
   script_path="${OUTDIR}/run_quiver_${fw_tag}__${tg_tag}__T${threshold}__${patch_slug}.sh"
   log_path="${LOGDIR}/quiver_${fw_tag}__${tg_tag}__T${threshold}__${patch_slug}.log"
 
+custom_name_cmd=()
+if [[ -n $CUSTOM_NAME ]]; then
+custom_name_cmd=( --output-name "$CUSTOM_NAME")
+fi
+
+
   cat > "$script_path" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
@@ -182,12 +189,12 @@ fi
 # start:     ${start_spec:-<none>}
 mkdir -p \$(dirname $log_path)
 touch $log_path
-nohup bash "\$ROOTDIR/scripts/test_pipeline_quiver.sh" \\
-  -d 10 -s 10 -r 10 -c $CUDA \\
-  -l "H1:7,H2:5-7,H3:6-19" \\
+nohup bash "\$ROOTDIR/scripts/pipeline_rfantibody.sh" \\
+  --n-designs 10 --n-seqs 10 --n-recycles 10 --cuda-device $CUDA \\
+  --design-loops "H1:7,H2:5-7,H3:6-19" \\
   -f "$framework" \\
   -t "$target" \\
-  -h "$patch" \\
+  --hotspots "$patch" \\
   > "$log_path" 2>&1
 EOF
 

@@ -36,7 +36,7 @@ source .venv/bin/activate
 FRAMEWORK=""                               # TO BE PARSED required; RFAntibody expects frameworks in "HLT" format
                                            # created using from a Chothia-annotated PDB using
                                            # ./scripts/util/convert_chothia2hlt_antibody.sh
-TARGET=""                                  # TO BE PARSED required;
+TARGET=""                                 # TO BE PARSED required;
                                            # created using from a RCSB PDB using
                                            # ./scripts/util/pipeline_clean_target.sh
 OUTPUT_NAME=""                             # a custom name of the run directory. ex: "run_cd33_001" will
@@ -85,8 +85,11 @@ Required Arguments:
   -f, --framework FILE      Path to framework file (HLT format)
   -t, --target FILE         Path to target file (cleaned PDB format from script)
 
-RFdiffusion Options:
+Misc. Arguments:
   -o, --output-name STR     Custom name for the run directory (default: auto)
+  -c, --cuda-device INT     Custom cuda device (default: 0)
+
+RFdiffusion Options:
   --n-designs INT           Number of backbones to generate (default: 25)
   --diffuser-t INT          Diffusion time-steps (default: 50)
   --design-loops STR        Loops and lengths to design (e.g., "H1:7,H2:6,H3:5-13" or "H1:,H2:,H3:)
@@ -186,7 +189,7 @@ while [[ $# -gt 0 ]]; do
       FORMAT="$2"
       shift 2
       ;;
-    --cuda-device)
+    -c|--cuda-device)
       [[ $# -ge 2 ]] || die "$1 requires a value"
       CUDA_DEVICE="$2"
       shift 2
@@ -220,7 +223,6 @@ export CUDA_VISIBLE_DEVICES=$CUDA_DEVICE
 NOW="$(date '+%y%m%d_%H%M%S')"
 # If no custom output name is provided, create it based on the input framework, target and hotspot as minimal identifier
 if [[ ! -n $OUTPUT_NAME ]]; then
-  echo "here"
   FW_BN="$(basename "$FRAMEWORK")"
   FW_BN="${FW_BN%.*}"
   TG_BN="$(basename "$TARGET")"
@@ -266,13 +268,16 @@ LOOPS=$(echo "$DESIGN_LOOPS" | sed 's/:[^,]*//g')
 
 # Different format handling
 if [[ $FORMAT == "qv" ]]; then
-  RFDIFF_CMD="rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTPUT_DIR}/01_rfdiffusion.qv -n ${N_DESIGN} -l ${DESIGN_LOOPS} --diffuser-t ${DIFFUSER_T} ${HOTSPOT_ARGS[*]} > ${LOGS_DIR}/01_DIFFUSION.log 2>&1"
-  PROTEINMPNN_CMD="proteinmpnn --input-quiver ${OUTPUT_DIR}/01_rfdiffusion.qv --output-quiver ${OUTPUT_DIR}/02_sequences.qv -l ${LOOPS} -n ${N_SEQUENCE} > ${LOGS_DIR}02_PROTEINMPNN.log 2>&1"
-  RF2_CMD="rf2 --input-quiver ${OUTPUT_DIR}/02_sequences.qv --output-quiver ${OUTPUT_DIR}/03_RF2_folds.qv -r ${N_RECYCLE} > ${LOGS_DIR}/03_RF2.log 2>&1"
+  RFDIFF_CMD="rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTPUT_DIR}/01_rfdiffusion.qv -n ${N_DESIGN} -l ${DESIGN_LOOPS} --diffuser-t ${DIFFUSER_T} ${HOTSPOT_ARGS[*]}"
+  
+  PROTEINMPNN_CMD="proteinmpnn --input-quiver ${OUTPUT_DIR}/01_rfdiffusion.qv --output-quiver ${OUTPUT_DIR}/02_sequences.qv -l ${LOOPS} -n ${N_SEQUENCE}"
+  
+  RF2_CMD="rf2 --input-quiver ${OUTPUT_DIR}/02_sequences.qv --output-quiver ${OUTPUT_DIR}/03_RF2_folds.qv -r ${N_RECYCLE}"
+  
 elif [[ $FORMAT == "pdb" ]]; then
-  RFDIFF_CMD="rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTPUT_DIR}/01_rfdiffusion/design -n ${N_DESIGN} -l ${DESIGN_LOOPS} --diffuser-t ${DIFFUSER_T} ${HOTSPOT_ARGS[*]} > ${LOGS_DIR}/01_DIFFUSION.OG 2>&1"
-  PROTEINMPNN_CMD="proteinmpnn -i ${OUTPUT_DIR}/01_rfdiffusion/ -o ${OUTPUT_DIR}/02_sequences/ -l ${LOOPS} -n ${N_SEQUENCE} > ${LOGS_DIR}02_PROTEINMPNN.log 2>&1"
-  RF2_CMD="rf2 -i ${OUTPUT_DIR}/02_sequences/ -o ${OUTPUT_DIR}/03_RF2_folds/ -r ${N_RECYCLE} > ${LOGS_DIR}/03_RF2.log 2>&1"
+  RFDIFF_CMD="rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTPUT_DIR}/01_rfdiffusion/design -n ${N_DESIGN} -l ${DESIGN_LOOPS} --diffuser-t ${DIFFUSER_T} ${HOTSPOT_ARGS[*]}"
+  PROTEINMPNN_CMD="proteinmpnn -i ${OUTPUT_DIR}/01_rfdiffusion/ -o ${OUTPUT_DIR}/02_sequences/ -l ${LOOPS} -n ${N_SEQUENCE}"
+  RF2_CMD="rf2 -i ${OUTPUT_DIR}/02_sequences/ -o ${OUTPUT_DIR}/03_RF2_folds/ -r ${N_RECYCLE}"
 fi
 
 START_TIME=$(date '+%Y-%m-%d %H:%M:%S')
@@ -292,7 +297,7 @@ rfdlog() {
 }
 rfdlog >> "${LOGS_DIR}/run.log"
 
-$RFDIFF_CMD
+$RFDIFF_CMD > ${LOGS_DIR}/01_DIFFUSION.log 2>&1
 
 pmpnnlog(){
   echo ""
@@ -305,7 +310,7 @@ pmpnnlog(){
 pmpnnlog
 pmpnnlog >> "${LOGS_DIR}/run.log"
 
-$PROTEINMPNN_CMD
+$PROTEINMPNN_CMD > ${LOGS_DIR}/02_PROTEINMPNN.log 2>&1
 
 rf2log(){
   echo ""
@@ -318,7 +323,7 @@ rf2log(){
 rf2log
 rf2log >> "${LOGS_DIR}/run.log"
 
-$RF2_CMD
+$RF2_CMD > ${LOGS_DIR}/03_RF2.log 2>&1
 
 END_TIME=$(date '+%Y-%m-%d %H:%M:%S')
 endlog(){
