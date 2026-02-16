@@ -93,7 +93,7 @@ def main():
     dssp = do_dssp(args.input, args.pdb_id, args.model_number, args.which_dssp)
     dssp_df = dssp_to_df(dssp, chains)
     if args.out_csv is None:
-        args.out_csv = os.path.join(os.path.dirname(args.input), f'{os.path.basename(args.input).split('.')[0]}_dssp.csv')
+        args.out_csv = os.path.join(os.path.dirname(args.input), f"{os.path.basename(args.input).split('.')[0]}_dssp.csv")
     dssp_df.to_csv(args.out_csv)
     return 0
 

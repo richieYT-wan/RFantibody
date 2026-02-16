@@ -79,7 +79,10 @@ fi
 # Initialise shell integration activate environment
 eval "$(conda shell.bash hook)"
 conda activate ada
-
+echo "" 
+echo "HERE"
+echo "$(which conda)"
+echo ""
 usage() {
   cat <<EOF
 Usage:
@@ -110,7 +113,7 @@ OUTPUT_NAME=""
 PDB_ID=""
 CHAINS=""
 LIGANDS=""
-CUTOFF_ANGSTROM=4.0
+CUTOFF_ANGSTROM=""
 THRESHOLD_RSA=0.2
 RUN_DSSP=""
 RENUMBER=false
@@ -193,6 +196,15 @@ if [[ -n $CHAINS ]]; then
   CHAIN_ARGS+=( --chains "$CHAINS")
 fi
 
+LIGANDS_ARGS=()
+if [[ -n $LIGANDS ]]; then
+  LIGANDS_ARGS+=( --ligands "$LIGANDS")
+fi
+
+CUTOFF_ARGS=()
+if [[ -n $CUTOFF_ANGSTROM ]]; then
+  CUTOFF_ARGS+=( --ligands "$CUTOFF_ANGSTROM")
+fi
 # Optional: runs DSSP
 if $RUN_DSSP; then
   OUTPUT_DSSP=${INPUT_PDB%.*}_dssp.csv
@@ -203,7 +215,7 @@ fi
 
 echo "Cleaning PDB file $INPUT_PDB"
 
-python ./scripts/util/clean_target_pdb.py -i $INPUT_PDB -o ${OUTPUT_NAME} --ligands $LIGANDS --cutoff $CUTOFF_ANGSTROM "${CLEANPDB_PYARGS[@]}" "${CHAIN_ARGS[@]}"
+python ./scripts/util/clean_target_pdb.py -i $INPUT_PDB -o ${OUTPUT_NAME} "${LIGANDS_ARGS[@]}" "${CUTOFF_ARGS[@]}" "${CLEANPDB_PYARGS[@]}" "${CHAIN_ARGS[@]}"
 
 if [[ -n "$CHAINS" ]]; then
   CHAINS_UNDERSCORE="$(echo "$CHAINS" | tr ',' '_')"
