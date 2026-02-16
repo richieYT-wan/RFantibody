@@ -1,0 +1,20 @@
+nohup: ignoring input
+Wrote /home/JV11_DK2/RFantibody/outputs/260215_025729_runqv_fw7eow_HLT_tgCD33_7AW6_processed_chains_A_hsA203A204A206/logs/command.txt
+
+==============================================
+Step 2/3: ProteinMPNN with 10 sequences
+==============================================
+
+proteinmpnn --input-quiver /home/JV11_DK2/RFantibody/outputs/260215_025729_runqv_fw7eow_HLT_tgCD33_7AW6_processed_chains_A_hsA203A204A206/01_rfdiffusion.qv --output-quiver /home/JV11_DK2/RFantibody/outputs/260215_025729_runqv_fw7eow_HLT_tgCD33_7AW6_processed_chains_A_hsA203A204A206/02_sequences.qv -l H1,H2,H3 -n 10
+
+==============================================
+Step 3/3: RF2 with 10 recycling steps
+==============================================
+
+rf2 --input-quiver /home/JV11_DK2/RFantibody/outputs/260215_025729_runqv_fw7eow_HLT_tgCD33_7AW6_processed_chains_A_hsA203A204A206/02_sequences.qv --output-quiver /home/JV11_DK2/RFantibody/outputs/260215_025729_runqv_fw7eow_HLT_tgCD33_7AW6_processed_chains_A_hsA203A204A206/03_RF2_folds.qv -r 10
+
+******************
+Pipeline done
+******************
+
+[END   2026-02-15 04:48:30] Script finished in qv

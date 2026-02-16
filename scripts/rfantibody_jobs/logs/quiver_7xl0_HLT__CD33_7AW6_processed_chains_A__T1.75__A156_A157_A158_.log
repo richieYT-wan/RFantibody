@@ -1,0 +1,7 @@
+Wrote /home/JV11_DK2/RFantibody/outputs/260214_221939_runqv_fw7xl0_HLT_tgCD33_7AW6_processed_chains_A_hsA156A157A158/logs/command.txt
+
+==============================================
+Step 2/3: ProteinMPNN with 10 sequences
+==============================================
+
+proteinmpnn --input-quiver /home/JV11_DK2/RFantibody/outputs/260214_221939_runqv_fw7xl0_HLT_tgCD33_7AW6_processed_chains_A_hsA156A157A158/01_rfdiffusion.qv --output-quiver /home/JV11_DK2/RFantibody/outputs/260214_221939_runqv_fw7xl0_HLT_tgCD33_7AW6_processed_chains_A_hsA156A157A158/02_sequences.qv -l H1,H2,H3 -n 10
