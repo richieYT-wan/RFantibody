@@ -58,9 +58,9 @@ if [[ -z "$FILENAME" || -z "$HEAVYCHAIN" ]]; then
   usage
 fi
 
+INPUT_DIR="$(dirname "${FILENAME}")"
 # Filename handling if no custom name is provided
 if [[ -z "$OUTPUT" ]]; then
-  INPUT_DIR="$(dirname "${FILENAME}")"
   BASENAME="$(basename "${FILENAME}")"
   if [[ "$BASENAME" == *chothia* ]]; then
     OUTPUT="${BASENAME/chothia/HLT}"
@@ -72,7 +72,7 @@ if [[ -z "$OUTPUT" ]]; then
   OUTPUT="${OUTPUT%.*}"
 fi
 # Saving outputs one path up relative to the input file and into an "HLT" directory and renames it with _HLT extension
-TMP="${ROOTDIR}${INPUT_DIR}/"
+TMP="${ROOTDIR}/${INPUT_DIR}"
 OUTPUT_DIR="$(cd "$TMP/../" && pwd)/processed"
 mkdir -p "$OUTPUT_DIR"
 
@@ -87,4 +87,4 @@ python "$ROOTDIR/scripts/util/chothia2HLT.py" \
   --heavy $HEAVYCHAIN \
   --output "${OUTPUT_DIR}/${OUTPUT}.pdb"
 
-echo "HLT conversion completed."
+echo "HLT conversion completed. File saved at ${OUTPUT_DIR}/${OUTPUT}.pdb"

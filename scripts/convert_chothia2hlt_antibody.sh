@@ -34,8 +34,8 @@ FILENAME=""
 OUTPUT=""
 HEAVYCHAIN=""
 LIGHTCHAIN=""
-HEAVYCROP=113 # Chain cropping at # residue
-LIGHTCROP=107 # Chain cropping at # residue
+HEAVYCROP="" # Chain cropping at # residue
+LIGHTCROP="" # Chain cropping at # residue
 while [[ $# -gt 0 ]]; do
   case $1 in
     -f|--file)
@@ -107,14 +107,22 @@ echo "Converting input file ${FILENAME} to HLT format"
 echo "Saving output to "${OUTPUT_DIR}/${OUTPUT}.pdb""
 echo ""
 
+CROPCMD=()
+if [[ -n $HEAVYCROP ]]; then
+  CROPCMD+=( --Hcrop "$HEAVYCROP")
+fi
+
+if [[ -n $LIGHTCROP ]]; then
+  CROPCMD+=( --Lcrop "$LIGHTCROP")
+fi 
+
 # Convert the antibody file
 echo "Converting antibody file..."
 python "$ROOTDIR/scripts/util/chothia2HLT.py" \
   "${FILENAME}" \
   --heavy $HEAVYCHAIN \
   --light $LIGHTCHAIN \
-  --Hcrop $HEAVYCROP \
-  --Lcrop $LIGHTCROP \
+  "${CHAIN_ARGS[@]}"
   --output "${OUTPUT_DIR}/${OUTPUT}.pdb"
 
 echo "HLT conversion completed."
