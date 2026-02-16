@@ -43,7 +43,7 @@ OUTPUT_NAME=""                             # a custom name of the run directory.
                                            # write outputs in "<ROOT_DIR>/outputs/<TIMESTAMP>_run_cd33_001/ (default: autogenerates a timestamp and name based on inputs (framework, target, hotspot))
 N_DESIGN=25                               # Number of designs to generate (default: 100 backbones)
 DIFFUSER_T=50                              # Diffusion time-steps (default: 50)
-DESIGN_LOOPS="H1,H2,H3"                    # Loops to design with or without length;
+DESIGN_LOOPS="H1:,H2:,H3:"                    # Loops to design with or without length;
                                            # ex: "H1:7,H2:6,H3:5-13" to make H1,H2,H3 loops with lengths 7, 6 and ranging 5 to 13
 HOTSPOTS=""                                # Hotspot residues on target, uses the target chain identifier;
                                            # ex: "A149,A151,A154" (empty means not used)
@@ -92,7 +92,7 @@ Misc. Arguments:
 RFdiffusion Options:
   --n-designs INT           Number of backbones to generate (default: 25)
   --diffuser-t INT          Diffusion time-steps (default: 50)
-  --design-loops STR        Loops and lengths to design (e.g., "H1:7,H2:6,H3:5-13" or "H1:,H2:,H3:)
+  --design-loops STR        Loops and lengths to design (e.g., "H1:7,H2:6,H3:5-13" or "H1:,H2:,H3:")
   --hotspots STR            Target hotspots (e.g., "A149,A150,A151")
 
 ProteinMPNN Options:
@@ -268,7 +268,7 @@ LOOPS=$(echo "$DESIGN_LOOPS" | sed 's/:[^,]*//g')
 
 # Different format handling
 if [[ $FORMAT == "qv" ]]; then
-  RFDIFF_CMD="rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTPUT_DIR}/01_rfdiffusion.qv -n ${N_DESIGN} -l ${DESIGN_LOOPS} --diffuser-t ${DIFFUSER_T} ${HOTSPOT_ARGS[*]}"
+  RFDIFF_CMD="rfdiffusion -f ${FRAMEWORK} -t ${TARGET} --output-quiver ${OUTPUT_DIR}/01_rfdiffusion.qv -n ${N_DESIGN} -l ${DESIGN_LOOPS} --diffuser-t ${DIFFUSER_T} ${HOTSPOT_ARGS[*]}"
   
   PROTEINMPNN_CMD="proteinmpnn --input-quiver ${OUTPUT_DIR}/01_rfdiffusion.qv --output-quiver ${OUTPUT_DIR}/02_sequences.qv -l ${LOOPS} -n ${N_SEQUENCE}"
   
@@ -276,7 +276,9 @@ if [[ $FORMAT == "qv" ]]; then
   
 elif [[ $FORMAT == "pdb" ]]; then
   RFDIFF_CMD="rfdiffusion -f ${FRAMEWORK} -t ${TARGET} -o ${OUTPUT_DIR}/01_rfdiffusion/design -n ${N_DESIGN} -l ${DESIGN_LOOPS} --diffuser-t ${DIFFUSER_T} ${HOTSPOT_ARGS[*]}"
+  
   PROTEINMPNN_CMD="proteinmpnn -i ${OUTPUT_DIR}/01_rfdiffusion/ -o ${OUTPUT_DIR}/02_sequences/ -l ${LOOPS} -n ${N_SEQUENCE}"
+  
   RF2_CMD="rf2 -i ${OUTPUT_DIR}/02_sequences/ -o ${OUTPUT_DIR}/03_RF2_folds/ -r ${N_RECYCLE}"
 fi
 
