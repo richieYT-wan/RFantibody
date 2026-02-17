@@ -15,10 +15,11 @@ from biotite.structure import array, residue_iter
 from biotite.structure.io.pdb import PDBFile
 
 protein_residues = [
-    "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", 
-    "HIS", "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", 
+    "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY",
+    "HIS", "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER",
     "THR", "TRP", "TYR", "VAL"
 ]
+
 
 def parse_args():
     """Parse command line arguments for the script.
@@ -31,17 +32,19 @@ def parse_args():
             - target: Comma-separated list of target chain IDs
             - output: Optional output file path
     """
-    parser = argparse.ArgumentParser(description='Convert Chothia-formatted PDB to HLT format')
-    parser.add_argument('input_pdb', help='Input PDB file in Chothia format')
-    parser.add_argument('--heavy', '-H', help='Heavy chain ID')
-    parser.add_argument('--light', '-L', help='Light chain ID')
-    parser.add_argument('--target', '-T', help='Target chain ID(s), comma-separated')
-    parser.add_argument('--output', '-o', help='Output HLT file path')
-    parser.add_argument('--whole_fab', '-w', action='store_true', help='Keep entire Fab region')
-    parser.add_argument('--Hcrop', default=115, type=int, help='Chothia residue number to crop to for heavy chain a ' + \
-                        'reasonable number is between 105 and 115')
-    parser.add_argument('--Lcrop', default=110, type=int, help='Chothia residue number to crop to for light chain a ' + \
-                        'reasonable number is between 100 and 110')
+    parser = argparse.ArgumentParser(description = 'Convert Chothia-formatted PDB to HLT format')
+    parser.add_argument('input_pdb', help = 'Input PDB file in Chothia format')
+    parser.add_argument('--heavy', '-H', help = 'Heavy chain ID')
+    parser.add_argument('--light', '-L', help = 'Light chain ID')
+    parser.add_argument('--target', '-T', help = 'Target chain ID(s), comma-separated')
+    parser.add_argument('--output', '-o', help = 'Output HLT file path')
+    parser.add_argument('--whole_fab', '-w', action = 'store_true', help = 'Keep entire Fab region')
+    parser.add_argument('--Hcrop', default = 115, type = int,
+                        help = 'Chothia residue number to crop to for heavy chain a ' + \
+                               'reasonable number is between 105 and 115')
+    parser.add_argument('--Lcrop', default = 110, type = int,
+                        help = 'Chothia residue number to crop to for light chain a ' + \
+                               'reasonable number is between 100 and 110')
 
     args = parser.parse_args()
 
@@ -49,6 +52,7 @@ def parse_args():
         raise ValueError('Either heavy or light chain must be specified')
 
     return args
+
 
 def get_Fv_ranges():
     """Define the residue ranges for each Fv loop according to Chothia numbering scheme.
@@ -61,6 +65,7 @@ def get_Fv_ranges():
         'H': (1, 102),
         'L': (1, 97)
     }
+
 
 def get_cdr_ranges():
     """Define the residue ranges for each CDR loop according to Chothia numbering scheme.
@@ -75,7 +80,7 @@ def get_cdr_ranges():
         'H': {
             'H1': (26, 32),  # Heavy chain CDR1: residues 26-32
             'H2': (52, 56),  # Heavy chain CDR2: residues 52-56
-            'H3': (95, 102), # Heavy chain CDR3: residues 95-102
+            'H3': (95, 102),  # Heavy chain CDR3: residues 95-102
         },
         'L': {
             'L1': (24, 34),  # Light chain CDR1: residues 24-34
@@ -84,14 +89,15 @@ def get_cdr_ranges():
         },
     }
 
+
 def convert_to_hlt(
-    input_pdb,
-    heavy_chain,
-    light_chain,
-    target_chains,
-    whole_fab,
-    Hcrop,
-    Lcrop,
+        input_pdb,
+        heavy_chain,
+        light_chain,
+        target_chains,
+        whole_fab,
+        Hcrop,
+        Lcrop,
 ):
     """Convert a Chothia-formatted PDB file to HLT format.
     
@@ -111,7 +117,7 @@ def convert_to_hlt(
     """
     # Read input PDB file using biotite
     pdb_file = PDBFile.read(input_pdb)
-    structure = pdb_file.get_structure(model=1)
+    structure = pdb_file.get_structure(model = 1)
 
     # Subset the structure to only include protein chains
     protein_atom_list = []
@@ -120,10 +126,10 @@ def convert_to_hlt(
             protein_atom_list.append(atom)
 
     structure = array(protein_atom_list)
-    
+
     # Initialize new structure for HLT format
     atom_list = []
-    
+
     # Map original chain IDs to new HLT format chain IDs
     chain_mapping = {
         heavy_chain: 'H',
@@ -131,18 +137,18 @@ def convert_to_hlt(
     }
     for t in target_chains:
         chain_mapping[t] = 'T'
-    
+
     # Initialize dictionary to track CDR loop residue numbers
     # These will be used to generate the REMARK statements
     cdr_residues = {
         'H1': [], 'H2': [], 'H3': [],
         'L1': [], 'L2': [], 'L3': []
     }
-    
+
     # Process chains in HLT order
     current_residue = 1  # Track absolute residue numbering (1-indexed)
     cdr_ranges = get_cdr_ranges()
-    
+
     # Process each chain type in order: H, L, T
     residue_counter = 1
 
@@ -164,16 +170,16 @@ def convert_to_hlt(
                     # TODO replace this unique with biotite's num residues function
                     current_residue += len(np.unique(atoms.res_id))
             continue
-        
+
         # Get atoms for current chain
         chain_mask = structure.chain_id == orig_chain
         if not np.any(chain_mask):
             continue
-            
+
         atoms = structure[chain_mask]
         # Rename chain to H or L
         atoms.chain_id = np.full(len(atoms), chain_id)
-        
+
         # Renumber residues to absolute numbering and identify CDR loop residues
         renumbered_atoms = []
         if chain_id in cdr_ranges:
@@ -203,8 +209,9 @@ def convert_to_hlt(
                 atom_list += residue
 
                 residue_counter += 1
-    
+
     return array(atom_list), cdr_residues
+
 
 def main():
     """
@@ -217,22 +224,22 @@ def main():
 
     # Generate output path if not specified
     output_path = args.output or args.input_pdb.replace('.pdb', '_HLT.pdb')
-    
+
     # Convert structure to HLT format
     hlt_structure, cdr_residues = convert_to_hlt(
-        args.input_pdb,
-        args.heavy,
-        args.light,
-        target_chains,
-        args.whole_fab,
-        args.Hcrop,
-        args.Lcrop
+            args.input_pdb,
+            args.heavy,
+            args.light,
+            target_chains,
+            args.whole_fab,
+            args.Hcrop,
+            args.Lcrop
     )
-    
+
     # Create new PDB file with converted structure
     pdb_file = PDBFile()
     pdb_file.set_structure(hlt_structure)
-    
+
     # Write structure and CDR annotations
     with open(output_path, 'w') as f:
         pdb_file.write(f)
@@ -241,6 +248,7 @@ def main():
         for cdr in sorted(cdr_residues.keys()):
             for res_num in sorted(cdr_residues[cdr]):
                 f.write(f"REMARK PDBinfo-LABEL: {res_num:4d} {cdr}\n")
+
 
 if __name__ == '__main__':
     main()

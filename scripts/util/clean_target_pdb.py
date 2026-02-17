@@ -52,20 +52,8 @@ def _parse_atom_line(line: str):
     except ValueError:
         return None
     element = (line[76:78].strip() if len(line) >= 78 else "").strip()
-    return {
-        "rec": rec,
-        "atom_name": atom_name,
-        "altloc": altloc,
-        "resn": resn,
-        "chain": chain,
-        "resseq": resseq,
-        "icode": icode,
-        "x": x,
-        "y": y,
-        "z": z,
-        "element": element,
-        "raw": line.rstrip("\n"),
-    }
+    return {"rec": rec, "atom_name": atom_name, "altloc": altloc, "resn": resn, "chain": chain, "resseq": resseq,
+        "icode": icode, "x": x, "y": y, "z": z, "element": element, "raw": line.rstrip("\n"), }
 
 
 def _chain_sort_key(ch: str) -> tuple:
@@ -89,29 +77,21 @@ def _load_dssp_csv(dssp_csv: str) -> pd.DataFrame:
 
     df["chain"] = df["chain"].astype(str).str.strip().replace({"": " "})
     df["res_number"] = df["res_number"].astype(int)
-    df["rsa"] = pd.to_numeric(df["rsa"], errors="coerce")
+    df["rsa"] = pd.to_numeric(df["rsa"], errors = "coerce")
 
     # Optional fields
     if "aa" in df.columns:
         df["aa"] = df["aa"].astype(str).str.strip()
     if "asa" in df.columns:
-        df["asa"] = pd.to_numeric(df["asa"], errors="coerce")
+        df["asa"] = pd.to_numeric(df["asa"], errors = "coerce")
 
     return df
 
 
-def clean_pdb_for_rfantibody(
-    in_path: str,
-    out_path: str,
-    chains: Optional[Set[str]] = None,
-    ligands: Optional[Set[str]] = None,   # e.g. {"FVP","NAG"}
-    ligand_cutoff: float = 4.0,
-    renumber: bool = True,
-    keep_altloc: str = "A",
-    drop_h: bool = True,
-    dssp_csv: Optional[str] = None,
-    rsa_threshold: Optional[float] = None,
-) -> None:
+def clean_pdb_for_rfantibody(in_path: str, out_path: str, chains: Optional[Set[str]] = None,
+                             ligands: Optional[Set[str]] = None,  # e.g. {"FVP","NAG"}
+                             ligand_cutoff: float = 4.0, renumber: bool = True, keep_altloc: str = "A", drop_h: bool = True,
+                             dssp_csv: Optional[str] = None, rsa_threshold: Optional[float] = None, ) -> None:
     original_remarks: List[str] = []
     link_lines: List[str] = []
 
@@ -133,7 +113,7 @@ def clean_pdb_for_rfantibody(
         return atom["atom_name"].startswith("H")
 
     # Pass 1: keep REMARK, collect LINK, collect protein ATOM + ligand HETATM coords
-    with open(in_path, "r", encoding="utf-8", errors="replace") as f:
+    with open(in_path, "r", encoding = "utf-8", errors = "replace") as f:
         for raw in f:
             rec = raw[0:6]
 
@@ -184,10 +164,7 @@ def clean_pdb_for_rfantibody(
     res_best: Dict[Tuple[str, int, str, str], Tuple[float, Tuple[str, str, int, str]]] = {}
 
     # pre-pack ligand coords with ligand residue identity
-    lig_xyz = [
-        (a["x"], a["y"], a["z"], (a["resn"], a["chain"], a["resseq"], a["icode"]))
-        for a in ligand_atoms
-    ]
+    lig_xyz = [(a["x"], a["y"], a["z"], (a["resn"], a["chain"], a["resseq"], a["icode"])) for a in ligand_atoms]
 
     for a in protein_atoms:
         rid = (a["chain"], a["resseq"], a["icode"], a["resn"])
@@ -222,14 +199,7 @@ def clean_pdb_for_rfantibody(
             contact_items.append(((chain, resseq, icode, resn), d, (lresn, lchain, lresseq, licode)))
 
     # Sort by chain then residue number (then insertion code), not by distance
-    contact_items.sort(
-        key=lambda x: (
-            _chain_sort_key(x[0][0]),
-            x[0][1],
-            x[0][2],
-            x[1],
-        )
-    )
+    contact_items.sort(key = lambda x: (_chain_sort_key(x[0][0]), x[0][1], x[0][2], x[1],))
 
     # Build a simple "occluded" set for hotspot filtering (ignore insertion code for DSSP matching)
     occluded_simple: Set[Tuple[str, int]] = set()
@@ -239,26 +209,19 @@ def clean_pdb_for_rfantibody(
         lic = licode.strip()
         extra_remarks.append(_remark_line("RFANTIBODY_OCCLUDED_RES", 900))
         extra_remarks.append(
-            _remark_line(
-                f"{resn} {chain}{resseq}{ic} min_dist={d:.2f}A {lresn} {lchain}{lresseq}{lic}",
-                900,
-            )
-        )
+                _remark_line(f"{resn} {chain}{resseq}{ic} min_dist={d:.2f}A {lresn} {lchain}{lresseq}{lic}", 900))
         occluded_simple.add((chain, resseq))
 
     # 3) Hotspot suggestions from DSSP (rsa > threshold AND not occluded)
     if dssp_csv is not None and rsa_threshold is not None:
         ddf = _load_dssp_csv(dssp_csv)
         if renumber:
-        # Sort for deterministic renumbering
-            ddf = ddf.sort_values(by=["chain", "res_number"], kind="mergesort")
+            # Sort for deterministic renumbering
+            ddf = ddf.sort_values(by = ["chain", "res_number"], kind = "mergesort")
 
             new_numbers = []
-            for chain, sub in ddf.groupby("chain", sort=False):
-                mapping = {
-                    old_res: i + 1
-                    for i, old_res in enumerate(sorted(sub["res_number"].unique()))
-                }
+            for chain, sub in ddf.groupby("chain", sort = False):
+                mapping = {old_res: i + 1 for i, old_res in enumerate(sorted(sub["res_number"].unique()))}
                 new_numbers.extend(sub["res_number"].map(mapping))
 
             ddf["res_number"] = new_numbers
@@ -270,15 +233,13 @@ def clean_pdb_for_rfantibody(
         # (Occlusion is defined by this script, not by RSA.)
         ddf = ddf[ddf["rsa"].notna()]
         cand = ddf[ddf["rsa"] > float(rsa_threshold)].copy()
-        cand["is_occluded"] = cand.apply(lambda r: (r["chain"], int(r["res_number"])) in occluded_simple, axis=1)
+        cand["is_occluded"] = cand.apply(lambda r: (r["chain"], int(r["res_number"])) in occluded_simple, axis = 1)
         cand = cand[~cand["is_occluded"]]
 
         # Sort by chain then residue number
-        cand = cand.sort_values(
-            by=["chain", "res_number"],
-            key=lambda s: s.map(lambda x: _chain_sort_key(str(x)) if s.name == "chain" else x),
-            kind="mergesort",
-        )
+        cand = cand.sort_values(by = ["chain", "res_number"],
+                key = lambda s: s.map(lambda x: _chain_sort_key(str(x)) if s.name == "chain" else x),
+                kind = "mergesort", )
 
         for _, r in cand.iterrows():
             chain = str(r["chain"]).strip() or " "
@@ -341,7 +302,7 @@ def clean_pdb_for_rfantibody(
         bn = basename + f"_chains_{'_'.join(sorted(chains))}"
         out_path = os.path.join(dirname, bn + extension)
 
-    with open(out_path, "w", encoding="utf-8") as f:
+    with open(out_path, "w", encoding = "utf-8") as f:
         for r in original_remarks:
             f.write(r + "\n")
         for r in extra_remarks:
@@ -353,18 +314,19 @@ def clean_pdb_for_rfantibody(
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
-    p.add_argument("-i", "--input", required=True)
-    p.add_argument("-o", "--output", required=True)
-    p.add_argument("--chains", default="", help="Comma-separated chains to keep, e.g. A,B")
-    p.add_argument("--ligands", default="", help="Comma-separated ligand resnames to consider, e.g. FVP,NAG")
-    p.add_argument("--cutoff", type=float, default=4.0, help="Å cutoff for occlusion marking (default 4.0)")
-    p.add_argument("--renumber", action="store_true", help="Renumber the residues from author-numbering to starting from 1 (default False)")
-    p.add_argument("--keep-h", action="store_true", help="Keep hydrogens")
-    p.add_argument("--altloc", default="A")
+    p.add_argument("-i", "--input", required = True)
+    p.add_argument("-o", "--output", required = True)
+    p.add_argument("--chains", default = "", help = "Comma-separated chains to keep, e.g. A,B")
+    p.add_argument("--ligands", default = "", help = "Comma-separated ligand resnames to consider, e.g. FVP,NAG")
+    p.add_argument("--cutoff", type = float, default = 4.0, help = "Å cutoff for occlusion marking (default 4.0)")
+    p.add_argument("--renumber", action = "store_true",
+                   help = "Renumber the residues from author-numbering to starting from 1 (default False)")
+    p.add_argument("--keep-h", action = "store_true", help = "Keep hydrogens")
+    p.add_argument("--altloc", default = "A")
 
     # DSSP-based hotspot suggestions
-    p.add_argument("--dssp_csv", default=None, help="CSV produced by run_dssp.py")
-    p.add_argument("--rsa_threshold", type=float, default=0.2, help="Hotspot RSA threshold (e.g. 0.25)")
+    p.add_argument("--dssp_csv", default = None, help = "CSV produced by run_dssp.py")
+    p.add_argument("--rsa_threshold", type = float, default = 0.2, help = "Hotspot RSA threshold (e.g. 0.25)")
 
     return p.parse_args()
 
@@ -374,15 +336,6 @@ if __name__ == "__main__":
     chains = {c.strip() for c in args.chains.split(",") if c.strip()} or None
     ligands = {x.strip().upper() for x in args.ligands.split(",") if x.strip()} or None
 
-    clean_pdb_for_rfantibody(
-        in_path=args.input,
-        out_path=args.output,
-        chains=chains,
-        ligands=ligands,
-        ligand_cutoff=args.cutoff,
-        renumber=args.renumber,
-        keep_altloc=args.altloc,
-        drop_h=not args.keep_h,
-        dssp_csv=args.dssp_csv,
-        rsa_threshold=args.rsa_threshold,
-    )
+    clean_pdb_for_rfantibody(in_path = args.input, out_path = args.output, chains = chains, ligands = ligands,
+            ligand_cutoff = args.cutoff, renumber = args.renumber, keep_altloc = args.altloc, drop_h = not args.keep_h,
+            dssp_csv = args.dssp_csv, rsa_threshold = args.rsa_threshold, )
