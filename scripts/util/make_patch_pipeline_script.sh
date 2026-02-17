@@ -4,7 +4,8 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  bash scripts/util/make_patch_quiver_script.sh -f <framework.pdb> -t <target_processed.pdb> -T <threshold> -c <cuda_device> -n <custom_name> [-S A148]
+  bash scripts/util/make_patch_quiver_script.sh -f <framework.pdb> -t <target_processed.pdb> -T <threshold> -c <cuda_device> -n <custom_name> \ 
+  -d <n_designs> -s <n_sequences> -r <n_recycles> [-L <DESIGN_LOOPS> -S <START_RESIDUE>]
 
 Generates one runnable script per hotspot triplet patch into:
   RFantibody/scripts/rfantibody_jobs/
@@ -25,13 +26,21 @@ start_spec=""
 threshold=""
 CUDA=0
 CUSTOM_NAME=""
-while getopts ":f:t:S:T:h:c:" opt; do
+N_DESIGNS=10
+N_SEQS=10
+N_RECYCLES=10
+DESIGN_LOOPS="H1:7,H2:5-7,H3:6-19"
+while getopts ":f:t:S:T:h:c:d:s:r:L" opt; do
   case "$opt" in
     f) framework="$OPTARG" ;;
     t) target="$OPTARG" ;;
     S) start_spec="$OPTARG" ;;
     T) threshold="$OPTARG" ;;
     c) CUDA="$OPTARG" ;;
+    d) N_DESIGNS="$OPTARG" ;;
+    s) N_SEQS="$OPTARG" ;; 
+    r) N_RECYCLES="$OPTARG" ;;
+    L) DESIGN_LOOPS="$OPTARG" ;;
     # n) CUSTON_NAME="$OPTARG" ;;
     h) usage ;;
     \?) usage ;;
@@ -190,8 +199,8 @@ fi
 mkdir -p \$(dirname $log_path)
 touch $log_path
 nohup bash "\$ROOTDIR/scripts/pipeline_rfantibody.sh" \\
-  --n-designs 10 --n-seqs 10 --n-recycles 10 --cuda-device $CUDA \\
-  --design-loops "H1:7,H2:5-7,H3:6-19" \\
+  --n-designs $N_DESIGNS --n-seqs $N_SEQS --n-recycles $N_RECYCLES --cuda-device $CUDA \\
+  --design-loops $DESIGN_LOOPS \\
   -f "$framework" \\
   -t "$target" \\
   --hotspots "$patch" \\
