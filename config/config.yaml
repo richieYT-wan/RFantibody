@@ -1,0 +1,88 @@
+results_dir: "results"
+logs_dir: "logs"
+
+frameworks:
+  3eak_B:
+    sabdab_chothia_url: "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab/pdb/3eak/?scheme=chothia"
+    kind: "nanobody"          # nanobody or antibody
+    chain: "A"
+  7eow_B:
+    sabdab_chothia_url: "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab/pdb/7eow/?scheme=chothia"
+    kind: "nanobody"          # nanobody or antibody
+    chain: "B"
+  7xl0_B:
+    sabdab_chothia_url: "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab/pdb/7xl0/?scheme=chothia"
+    kind: "nanobody"
+    chain: "A"
+  8coh_B:
+    sabdab_chothia_url: "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab/pdb/8coh/?scheme=chothia"
+    kind: "nanobody"
+    chain: "A"
+  8z8v_B:
+    sabdab_chothia_url: "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab/pdb/8z8v/?scheme=chothia"
+    kind: "nanobody"
+    chain: "B"
+  
+
+targets:
+  cd33_7aw6_A:
+    rcsb_pdb_url: "https://files.rcsb.org/download/7AW6.pdb"
+    chains: "A"
+    ligands: "NAG,FVP"
+    cutoff: 4.0
+    run_dssp: true
+    dssp_threshold: 0.4
+    renumber: false
+
+experiments:
+
+  default_qv:
+    format: "qv"
+    n_designs: 10
+    diffuser_t: 50
+    design_loops: "H1:7,H2:5-7,H3:6-19"
+    n_seqs: 10
+    n_recycles: 10
+    hotspot_prop: 0.1
+
+  high_sampling:
+    format: "qv"
+    n_designs: 50
+    diffuser_t: 75
+    n_seqs: 20
+
+
+runs:
+  run_cd33_7eow:
+    framework_id: "7eow_B"
+    target_id: "cd33_7aw6_A"
+    format: "qv"
+    experiment: "default_qv"
+
+  run_cd33_3eak:
+    framework_id: "3eak_H"
+    target_id: "cd33_7aw6_A"
+    experiment: "default_qv"
+
+  run_cd33_7xl0:
+    framework_id: "7xl0_H"
+    target_id: "cd33_7aw6_A"
+    experiment: "default_qv"
+
+  run_cd33_8coh:
+    framework_id: "8coh_H"
+    target_id: "cd33_7aw6_A"
+    experiment: "default_qv"
+
+  run_cd33_8z8v:
+    framework_id: "8z8v_H"
+    target_id: "cd33_7aw6_A"
+    experiment: "default_qv"
+
+
+# You can also run RFantibody with *external* inputs without the first two pipelines:
+# runs:
+#   run_external:
+#     framework_path: "path/to/framework_HLT.pdb"
+#     target_path: "path/to/target_processed.pdb"
+#     ...
