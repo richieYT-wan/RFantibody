@@ -10,15 +10,19 @@ cached_schedules
 example_outputs
 example_outputs_*
 check.point
-outputs
+outputs/*
+!outputs/.gitkeep
+!outputs/merged_parsed_output_cd33_5vhh.csv
 test_report.txt
 dgl-2.4.0+cu118-cp310-cp310-manylinux1_x86_64.*
 *_report.txt
 dist
 *.sif
+
 logs/*
 !logs/.gitkeep
 scripts/quiver_jobs/*
+scripts/rfantibody_jobs/logs
 !scripts/quiver_jobs/README.txt
 
 scripts/util/test.sh
