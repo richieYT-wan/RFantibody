@@ -2,30 +2,32 @@ results_dir: "results"
 logs_dir: "logs"
 
 frameworks:
-  3eak_B:
+  3eak:
     sabdab_chothia_url: "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab/pdb/3eak/?scheme=chothia"
     kind: "nanobody"          # nanobody or antibody
     chain: "A"
-  7eow_B:
+  7eow:
     sabdab_chothia_url: "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab/pdb/7eow/?scheme=chothia"
     kind: "nanobody"          # nanobody or antibody
     chain: "B"
-  7xl0_B:
+  7xl0:
     sabdab_chothia_url: "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab/pdb/7xl0/?scheme=chothia"
     kind: "nanobody"
     chain: "A"
-  8coh_B:
+  8coh:
     sabdab_chothia_url: "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab/pdb/8coh/?scheme=chothia"
     kind: "nanobody"
     chain: "A"
-  8z8v_B:
+  8z8v:
     sabdab_chothia_url: "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab/pdb/8z8v/?scheme=chothia"
     kind: "nanobody"
     chain: "B"
   
 
 targets:
-  cd33_7aw6_A:
+  CD33_7AW6:
+    target_name: "CD33"
+    pdb_id: "7AW6"
     rcsb_pdb_url: "https://files.rcsb.org/download/7AW6.pdb"
     chains: "A"
     ligands: "NAG,FVP"
@@ -54,28 +56,28 @@ experiments:
 
 runs:
   run_cd33_7eow:
-    framework_id: "7eow_B"
+    framework_id: "7eow"
     target_id: "cd33_7aw6_A"
     format: "qv"
     experiment: "default_qv"
 
   run_cd33_3eak:
-    framework_id: "3eak_H"
+    framework_id: "3eak"
     target_id: "cd33_7aw6_A"
     experiment: "default_qv"
 
   run_cd33_7xl0:
-    framework_id: "7xl0_H"
+    framework_id: "7xl0"
     target_id: "cd33_7aw6_A"
     experiment: "default_qv"
 
   run_cd33_8coh:
-    framework_id: "8coh_H"
+    framework_id: "8coh"
     target_id: "cd33_7aw6_A"
     experiment: "default_qv"
 
   run_cd33_8z8v:
-    framework_id: "8z8v_H"
+    framework_id: "8z8v"
     target_id: "cd33_7aw6_A"
     experiment: "default_qv"
 

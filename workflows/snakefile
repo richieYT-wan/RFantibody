@@ -1,0 +1,11 @@
+import glob
+import yaml
+
+configfile: "../config/config.yaml"
+
+include: "rules/common.smk"
+include: "rules/process_framework.smk"
+include: "rules/process_target.smk"
+include: "rules/run_single.smk"
+include: "rules/patch_runs.smk"
+include: "rules/parse_outputs.smk"
