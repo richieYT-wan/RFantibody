@@ -40,51 +40,42 @@ experiments:
 
   default_qv:
     format: "qv"
-    n_designs: 10
-    diffuser_t: 50
     design_loops: "H1:7,H2:5-7,H3:6-19"
+    diffuser_t: 50
+    n_designs: 10
     n_seqs: 10
     n_recycles: 10
     hotspot_prop: 0.1
-
-  high_sampling:
-    format: "qv"
-    n_designs: 50
-    diffuser_t: 75
-    n_seqs: 20
-
+    rsa_threshold: 1.75
+    
 
 runs:
   run_cd33_7eow:
     framework_id: "7eow"
-    target_id: "cd33_7aw6_A"
+    target_id: "CD33_7AW6"
     format: "qv"
     experiment: "default_qv"
 
   run_cd33_3eak:
     framework_id: "3eak"
-    target_id: "cd33_7aw6_A"
+    target_id: "CD33_7AW6"
+    format: qv
     experiment: "default_qv"
 
   run_cd33_7xl0:
     framework_id: "7xl0"
-    target_id: "cd33_7aw6_A"
+    target_id: "CD33_7AW6"
+    format: qv
     experiment: "default_qv"
 
   run_cd33_8coh:
     framework_id: "8coh"
-    target_id: "cd33_7aw6_A"
+    target_id: "CD33_7AW6"
+    format: qv
     experiment: "default_qv"
 
   run_cd33_8z8v:
     framework_id: "8z8v"
-    target_id: "cd33_7aw6_A"
+    target_id: "CD33_7AW6"
+    format: qv
     experiment: "default_qv"
-
-
-# You can also run RFantibody with *external* inputs without the first two pipelines:
-# runs:
-#   run_external:
-#     framework_path: "path/to/framework_HLT.pdb"
-#     target_path: "path/to/target_processed.pdb"
-#     ...

@@ -1,11 +1,21 @@
-import glob
-import yaml
+# workflows/Snakefile
+import os
 
-configfile: "../config/config.yaml"
+configfile: "config/config.yaml"
 
-include: "rules/common.smk"
+RAW_DIR     = "data/01_raw"
+INT_DIR     = "data/02_intermediate"
+OUTPUT_DIR  = "data/03_outputs"
+RESULTS_DIR = config.get("results_dir", "results")
+LOGS_DIR    = config.get("logs_dir", "logs")
+
 include: "rules/process_framework.smk"
 include: "rules/process_target.smk"
-include: "rules/run_single.smk"
-include: "rules/patch_runs.smk"
+include: "rules/generate_patches.smk"
+include: "rules/run_rfantibody.smk"
 include: "rules/parse_outputs.smk"
+
+RUN_IDS = list(config["runs"].keys())
+
+rule all:
+    # TBD
