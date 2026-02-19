@@ -30,7 +30,10 @@ N_DESIGNS=10
 N_SEQS=10
 N_RECYCLES=10
 DESIGN_LOOPS="H1:7,H2:5-7,H3:6-19"
-while getopts ":f:t:S:T:h:c:d:s:r:L" opt; do
+JOBS_DIR="" 
+# TODO: Refactor and make it handle flags a bit more explicitly
+#       Add the option to give jobs custom names (reflected in both the script AND the --output name in the pipeline_rfantibody call)
+while getopts ":f:t:S:T:h:c:d:s:r:L:O" opt; do
   case "$opt" in
     f) framework="$OPTARG" ;;
     t) target="$OPTARG" ;;
@@ -41,6 +44,7 @@ while getopts ":f:t:S:T:h:c:d:s:r:L" opt; do
     s) N_SEQS="$OPTARG" ;; 
     r) N_RECYCLES="$OPTARG" ;;
     L) DESIGN_LOOPS="$OPTARG" ;;
+    O) JOBS_DIR="$OPTARG" ;;
     # n) CUSTON_NAME="$OPTARG" ;;
     h) usage ;;
     \?) usage ;;
@@ -56,10 +60,11 @@ done
 
 # validate threshold is numeric
 gawk -v T="$threshold" 'BEGIN{ if (T+0 != T) exit 1 }' || { echo "ERROR: -T must be numeric (e.g. 1.5)" >&2; exit 2; }
-
-OUTDIR="./scripts/rfantibody_jobs"
-LOGDIR="$OUTDIR/logs"
-mkdir -p "$OUTDIR" "$LOGDIR"
+if [[ -n "${JOBS_DIR}" ]]; then
+  JOBS_DIR="./scripts/rfantibody_jobs"
+fi
+LOGDIR="$JOBS_DIR/logs"
+mkdir -p "$JOBS_DIR" "$LOGDIR"
 
 # basenames without extensions
 fw_base="$(basename "$framework")"; fw_base="${fw_base%.*}"
@@ -163,8 +168,8 @@ while IFS= read -r patch; do
 
   patch_slug="$(echo "$patch" | tr ',' '_' | tr -c 'A-Za-z0-9_-' '_' | sed 's/__\+/_/g')"
 
-  script_path="${OUTDIR}/run_quiver_${fw_tag}__${tg_tag}__T${threshold}__${patch_slug}.sh"
-  log_path="${LOGDIR}/quiver_${fw_tag}__${tg_tag}__T${threshold}__${patch_slug}.log"
+  script_path="${JOBS_DIR}/job_${fw_tag}__${tg_tag}__T${threshold}__${patch_slug}.sh"
+  log_path="${JOBS_DIR}/job_${fw_tag}__${tg_tag}__T${threshold}__${patch_slug}.log"
 
 custom_name_cmd=()
 if [[ -n $CUSTOM_NAME ]]; then

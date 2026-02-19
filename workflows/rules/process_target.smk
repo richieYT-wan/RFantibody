@@ -1,6 +1,10 @@
 # RFantibody/workflows/rules/process_target.smk
 
 # Allow chains_tag to be empty OR like: _chains_A_B
+# TODO: THE CURRENT DEFINITION WILL MATCH ANY CHAIN TAG, AND IF APPROPRIATE WILL WORK
+#       BUT THE ACTUAL CHAIN BEING PROCESSED IS DEFINED IN THE config.yaml (A only by default)
+#       Potentially very bad behaviour as we could end up with files _chains_B when the config.yaml is not defined as chain B.
+#       --> think of another way to handle this (maybe without changing too many things here?)
 wildcard_constraints:
     chains_tag = r"(_chains_[A-Za-z0-9_]+)?"
 

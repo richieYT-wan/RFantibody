@@ -32,47 +32,51 @@ targets:
     run_dssp: true
     dssp_threshold: 0.4
     renumber: false
+    format: "qv"
 
 experiments:
-
-  default_qv:
+  # This experiment is for 7AW6, starts at res A148,
+  # Takes RSA 1.75 as threshold, 10 designs (10 sequences per)
+  7AW6_A148_RSA1p75_10d_10s:
+  # mostly defined by framework (fw), target (hs), hotspot patch (hs)
     format: "qv"
     design_loops: "H1:7,H2:5-7,H3:6-19"
     diffuser_t: 50
-    n_designs: 10
+    n_designs: 10 # 10 designs per fw-tg-hs
     n_seqs: 10
     n_recycles: 10
     hotspot_prop: 0.1
-    rsa_threshold: 1.75
-    
+    rsa_threshold: 1.75 # Sum RSA over 3 residues as available patch
+    start_spec: "A148" # start residue (we do A148 for C chain)
+
 
 runs:
   run_cd33_7eow:
     framework_id: "7eow"
     target_id: "CD33_7AW6"
     format: "qv"
-    experiment: "default_qv"
+    experiment: "7AW6_A148_RSA1p75_10d_10s"
 
   run_cd33_3eak:
     framework_id: "3eak"
     target_id: "CD33_7AW6"
     format: qv
-    experiment: "default_qv"
+    experiment: "7AW6_A148_RSA1p75_10d_10s"
 
   run_cd33_7xl0:
     framework_id: "7xl0"
     target_id: "CD33_7AW6"
     format: qv
-    experiment: "default_qv"
+    experiment: "7AW6_A148_RSA1p75_10d_10s"
 
   run_cd33_8coh:
     framework_id: "8coh"
     target_id: "CD33_7AW6"
     format: qv
-    experiment: "default_qv"
+    experiment: "7AW6_A148_RSA1p75_10d_10s"
 
   run_cd33_8z8v:
     framework_id: "8z8v"
     target_id: "CD33_7AW6"
     format: qv
-    experiment: "default_qv"
+    experiment: "7AW6_A148_RSA1p75_10d_10s"

@@ -7,7 +7,7 @@
 #   1. RFdiffusion  - Design nanobody backbone structures
 #   2. ProteinMPNN  - Design sequences for the backbones
 #   3. RF2          - Predict/refine final structures
-# Usage: bash /scripts/rfantibody_pipeline.sh
+# Usage: bash /scripts/pipeline_rfantibody.sh
 # ============================================================================
 
 set -euo pipefail  # Exit on error

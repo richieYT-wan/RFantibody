@@ -9,7 +9,7 @@ workdir: "../../" # This sets the working directory to the RFantibody/ root
 # Include rule files
 include: "rules/process_framework.smk"
 include: "rules/process_target.smk" # New include
-# include: "rules/generate_patches.smk"
+include: "rules/generate_patches.smk"
 # include: "rules/run_rfantibody.smk"
 # include: "rules/parse_outputs.smk"
 
@@ -22,6 +22,8 @@ def target_processed_path(tid):
 
 TARGET_OUTPUTS = [target_processed_path(tid) for tid in config["targets"].keys()]
 
+# Run ID handling
+RUN_IDS = list(config.get("runs", {}).keys())
 
 # Define the default target for the workflow (what happens if you just run 'snakemake')
 # For now, let's make it process all frameworks and targets. We'll expand this later.
@@ -29,4 +31,5 @@ rule all:
     input:
         expand("data/02_intermediate/framework/{framework_id}_HLT.pdb",
                framework_id=config["frameworks"].keys()),
-        TARGET_OUTPUTS
+        TARGET_OUTPUTS,
+        expand("data/03_outputs/{run_id}/patch_scripts/jobs.tsv", run_id=RUN_IDS)
