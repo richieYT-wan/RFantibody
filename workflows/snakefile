@@ -1,21 +1,21 @@
-# workflows/Snakefile
-import os
+# RFantibody/workflows/Snakefile
 
-configfile: "config/config.yaml"
+# Load configuration from config.yaml
+configfile: "../config.yaml"
 
-RAW_DIR     = "data/01_raw"
-INT_DIR     = "data/02_intermediate"
-OUTPUT_DIR  = "data/03_outputs"
-RESULTS_DIR = config.get("results_dir", "results")
-LOGS_DIR    = config.get("logs_dir", "logs")
+# Define working directory (relative to the Snakefile)
+workdir: "../../" # This sets the working directory to the RFantibody/ root
 
+# Include rule files
 include: "rules/process_framework.smk"
-include: "rules/process_target.smk"
-include: "rules/generate_patches.smk"
-include: "rules/run_rfantibody.smk"
-include: "rules/parse_outputs.smk"
+# include: "rules/process_target.smk" # Will add these later
+# include: "rules/generate_patches.smk"
+# include: "rules/run_rfantibody.smk"
+# include: "rules/parse_outputs.smk"
 
-RUN_IDS = list(config["runs"].keys())
-
+# Define the default target for the workflow (what happens if you just run 'snakemake')
+# For now, let's make it process all frameworks. We'll expand this later.
 rule all:
-    # TBD
+    input:
+        expand("data/02_intermediate/framework/{framework_id}_HLT.pdb",
+               framework_id=config["frameworks"].keys())
