@@ -1,13 +1,11 @@
 #!/bin/bash
-
 # Script to convert Chothia-formatted nanobody PDB files to HLT format
-
-set -e  # Exit on any error
-
+set -e # Exit on any error
 
 # Utils thing here:
 SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]}")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+
 # Walk up until we find RFantibody
 ROOTDIR="$SCRIPT_DIR"
 while [[ "$ROOTDIR" != "/" && "$(basename "$ROOTDIR")" != "RFantibody" ]]; do
@@ -16,75 +14,80 @@ done
 
 usage() {
   echo ""
-  echo "Usage: $0 -f <FILENAME> -h <heavychain> -o <custom_output_name>"
-  echo "Example: $0 -f path/to/file_chothia.pdb -h A -o custom_name.pdb"
-  echo "  - process chain A from /path/to/raw/file_chothia.pdb"
-  echo "  - save the result in either"
-  echo "    /path/to/processed/file_HLT.pdb"
-  echo "    or"
-  echo "    /path/to/processed/custom_name.pdb if the -o flag is used. DO NOT provide the extension in
-  the custom name."
-  echo "Use relative paths to input and output dir, assuming you run this script from the root (<...>/RFantibody/)"
+  echo "Usage: $0 -f <INPUT_FILENAME> -h <HEAVYCHAIN> [-o <FULL_OUTPUT_PATH>]"
+  echo "Example 1 (explicit output): $0 -f data/01_raw/framework/3eak_chothia.pdb -h A -o data/02_intermediate/framework/3eak_HLT.pdb"
+  echo "Example 2 (automatic output): $0 -f data/01_raw/framework/3eak_chothia.pdb -h A"
+  echo "  - INPUT_FILENAME: Path to the input Chothia PDB file."
+  echo "  - HEAVYCHAIN: The chain ID to process (e.g., 'A')."
+  echo "  - FULL_OUTPUT_PATH (optional): The complete path where the HLT PDB file should be saved."
+  echo "    If not provided, output will be derived from input: e.g., 'data/01_raw/processed/3eak_HLT.pdb'"
   echo ""
   exit 1
 }
 
 # initialise variables
-FILENAME=""
+INPUT_FILENAME=""
 HEAVYCHAIN=""
-OUTPUT=""
+FULL_OUTPUT_PATH="" # This will store the final determined output path
+
 while getopts ":f:o:h:" opt; do
   case ${opt} in
     f )
-      FILENAME=$OPTARG ;;
+      INPUT_FILENAME=$OPTARG ;;
     o )
-      OUTPUT=$OPTARG ;;
+      FULL_OUTPUT_PATH=$OPTARG ;;
     h )
       HEAVYCHAIN=$OPTARG ;;
     *)
       usage ;;
   esac
 done
-# Get output directory from command line argument or use current directory
-#INPUT_FILE=${1}
-#CHAIN=${2}
-#OUTPUT_DIR=${1:-$(pwd)}
-
 
 # die if required arguments are missing
-if [[ -z "$FILENAME" || -z "$HEAVYCHAIN" ]]; then
-  echo "Error: missing required arguments"
+if [[ -z "$INPUT_FILENAME" || -z "$HEAVYCHAIN" ]]; then
+  echo "Error: missing required arguments (-f and -h)"
   echo ""
   usage
 fi
 
-INPUT_DIR="$(dirname "${FILENAME}")"
-# Filename handling if no custom name is provided
-if [[ -z "$OUTPUT" ]]; then
-  BASENAME="$(basename "${FILENAME}")"
-  if [[ "$BASENAME" == *chothia* ]]; then
-    OUTPUT="${BASENAME/chothia/HLT}"
-  else
-    base="${BASENAME%.*}"
-    ext="${BASENAME##*.}"
-    OUTPUT="${base}_HLT.${ext}"
+# If FULL_OUTPUT_PATH is not provided, generate it automatically
+if [[ -z "$FULL_OUTPUT_PATH" ]]; then
+  INPUT_DIR=$(dirname "${INPUT_FILENAME}")
+  BASENAME=$(basename "${INPUT_FILENAME}")
+
+  # Replace "_chothia" with "_HLT"
+  DERIVED_BASENAME="${BASENAME/_chothia/_HLT}"
+
+  # Ensure the extension is .pdb (if it was something else, this would fix it)
+  # This also handles cases where _chothia might not be present, just appends _HLT
+  if [[ "$DERIVED_BASENAME" != *.pdb ]]; then
+    DERIVED_BASENAME="${DERIVED_BASENAME%.*}_HLT.pdb"
   fi
-  OUTPUT="${OUTPUT%.*}"
+
+  # Determine the 'processed' directory one level up from INPUT_DIR
+  # This assumes INPUT_DIR is like 'data/01_raw/framework'
+  # and we want 'data/01_raw/processed'
+  PARENT_DIR=$(dirname "$INPUT_DIR")
+  AUTO_OUTPUT_DIR="${PARENT_DIR}/processed"
+
+  FULL_OUTPUT_PATH="${AUTO_OUTPUT_DIR}/${DERIVED_BASENAME}"
 fi
-# Saving outputs one path up relative to the input file and into an "HLT" directory and renames it with _HLT extension
-TMP="${ROOTDIR}/${INPUT_DIR}"
-OUTPUT_DIR="$(cd "$TMP/../" && pwd)/processed"
+
+# Ensure the output directory exists
+OUTPUT_DIR=$(dirname "${FULL_OUTPUT_PATH}")
 mkdir -p "$OUTPUT_DIR"
 
-echo "Converting input file ${FILENAME} to HLT format"
-echo "Saving output to "${OUTPUT_DIR}/${OUTPUT}.pdb""
+echo "Converting input file ${INPUT_FILENAME} to HLT format"
+echo "Saving output to ${FULL_OUTPUT_PATH}"
 echo ""
+
+source .venv/bin/activate
 
 # Convert the nanobody file
 echo "Converting nanobody file..."
 python "$ROOTDIR/scripts/util/chothia2HLT.py" \
-  "${FILENAME}" \
-  --heavy $HEAVYCHAIN \
-  --output "${OUTPUT_DIR}/${OUTPUT}.pdb"
+  "${INPUT_FILENAME}" \
+  --heavy "$HEAVYCHAIN" \
+  --output "${FULL_OUTPUT_PATH}"
 
-echo "HLT conversion completed. File saved at ${OUTPUT_DIR}/${OUTPUT}.pdb"
+echo "HLT conversion completed. File saved at ${FULL_OUTPUT_PATH}"

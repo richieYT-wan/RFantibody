@@ -1,6 +1,3 @@
-results_dir: "results"
-logs_dir: "logs"
-
 frameworks:
   3eak:
     sabdab_chothia_url: "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab/pdb/3eak/?scheme=chothia"

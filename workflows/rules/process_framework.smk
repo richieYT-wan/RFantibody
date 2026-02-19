@@ -1,40 +1,41 @@
-#########################################
-# download and convert frameworks to HLT
-#########################################
+# RFantibody/workflows/rules/process_framework.smk
 
-# download raw framework in Chothia format
-rule download_framework:
+rule download_framework_pdb:
     output:
-        #TBD: should be "data/01_raw/framework/{framework_id}_chothia.pdb"
+        "data/01_raw/framework/{framework_id}_chothia.pdb"
     params:
-        url = #TBD
+        url=lambda wildcards: config["frameworks"][wildcards.framework_id]["sabdab_chothia_url"]
     shell:
-        """
-        mkdir -p $(dirname {output})
-        curl -L {{params.url}} -o {{output}}
-        """
+        "curl -L {params.url} -o {output}"
 
-# convert chothia PDB to HLT using the appropriate script
-rule convert_framework:
+rule process_framework_to_hlt:
     input:
-        raw = "data/01_raw/framework/{framework_id}_chothia.pdb"
+        pdb="data/01_raw/framework/{framework_id}_chothia.pdb"
     output:
-        hlt = "data/02_intermediate/framework/{framework_id}_HLT.pdb"
+        hlt="data/02_intermediate/framework/{framework_id}_HLT.pdb"
     params:
-        # TBD, to parse from config kind = lambda wildcards: config["frameworks"][wildcards.framework_id]["kind"],
-        # TBD, to parse from config chain = lambda wildcards: config["frameworks"][wildcards.framework_id]["chain"]
+        chain=lambda wildcards: config["frameworks"][wildcards.framework_id]["chain"],
+        kind=lambda wildcards: config["frameworks"][wildcards.framework_id]["kind"],
+        # The script path is relative to the RFantibody/ root, which is our workdir
+        script_base_dir="scripts",
+        # The conversion script expects the output basename without the .pdb extension
+        output_basename=lambda wildcards: wildcards.framework_id + "_HLT"
     shell:
         """
-        mkdir -p $(dirname {{output.hlt}})
-        # choose the correct conversion script based on kind
-        if [[ "{{params.kind}}" == "antibody" ]]; then
-            converter="scripts/convert_chothia2hlt_antibody.sh"
+        if [ "{params.kind}" = "nanobody" ]; then
+            CONVERSION_SCRIPT="{params.script_base_dir}/convert_chothia2hlt_nanobody.sh"
+        elif [ "{params.kind}" = "antibody" ]; then
+            CONVERSION_SCRIPT="{params.script_base_dir}/convert_chothia2hlt_antibody.sh"
         else
-            converter="scripts/convert_chothia2hlt_nanobody.sh"
+            echo "Error: Unknown framework kind '{params.kind}' for {wildcards.framework_id}" >&2
+            exit 1
         fi
-        # convert using the chain specified in the config
-        bash $converter -f {{input.raw}} -h {{params.chain}}
-        # your scripts save to inputs/framework/processed/
-        # copy it into data/02_intermediate/framework with a deterministic name
-        cp inputs/framework/processed/*_HLT.pdb {{output.hlt}}
+        
+
+        # The script assumes it's run from the RFantibody/ root, which Snakemake's workdir handles.
+        # It also handles creating the 'processed' directory and adding the .pdb extension.
+        bash "$CONVERSION_SCRIPT" \
+            -f "{input.pdb}" \
+            -h "{params.chain}" \
+            -o "{output.hlt}"
         """

@@ -296,12 +296,6 @@ def clean_pdb_for_rfantibody(in_path: str, out_path: str, chains: Optional[Set[s
     if final_atom_lines:
         final_atom_lines.append("TER")
 
-    if chains is not None:
-        basename, dirname = os.path.basename(out_path), os.path.dirname(out_path)
-        basename, extension = os.path.splitext(basename)
-        bn = basename + f"_chains_{'_'.join(sorted(chains))}"
-        out_path = os.path.join(dirname, bn + extension)
-
     with open(out_path, "w", encoding = "utf-8") as f:
         for r in original_remarks:
             f.write(r + "\n")

@@ -1,47 +1,60 @@
-# workflows/rules/process_target.smk
+# RFantibody/workflows/rules/process_target.smk
 
-rule download_target:
+# Allow chains_tag to be empty OR like: _chains_A_B
+wildcard_constraints:
+    chains_tag = r"(_chains_[A-Za-z0-9_]+)?"
+
+rule download_target_pdb:
     output:
-        #TBD, to be saved at pdb="data/01_raw/target/{target_id}.pdb"
+        "data/01_raw/target/{target_id}.pdb"
     params:
-        #TBD, to parse from config url=lambda wc: config["targets"][wc.target_id]["rcsb_pdb_url"]
+        url=lambda wildcards: config["targets"][wildcards.target_id]["rcsb_pdb_url"]
     shell:
-        r"""
-        mkdir -p $(dirname {output.pdb})
-        curl -L "{params.url}" -o "{output.pdb}"
-        """
+        "curl -L {params.url} -o {output}"
 
-rule process_target:
+rule clean_target_pdb:
     input:
-        #TBD: at raw="data/01_raw/target/{target_id}.pdb"
+        pdb="data/01_raw/target/{target_id}.pdb",
+        script="scripts/pipeline_clean_target.sh"
     output:
-        #TBD: at processed_chains="data/02_intermediate/target/{target_id}_processed_chains_{chains}.pdb"
+        processed_pdb="data/02_intermediate/target/{target_id}_processed{chains_tag}.pdb"
     params:
-        #TBD: to parse from config; chains=lambda wc: config["targets"][wc.target_id]["chains"],
-        #TBD: to parse from config; ligands=lambda wc: config["targets"][wc.target_id].get("ligands", ""),
-        #TBD: to parse from config; cutoff=lambda wc: config["targets"][wc.target_id].get("cutoff", 4.0),
-        #TBD: to parse from config; run_dssp=lambda wc: config["targets"][wc.target_id].get("run_dssp", False),
-        #TBD: to parse from config; thr=lambda wc: config["targets"][wc.target_id].get("dssp_threshold", 0.4),
-        #TBD: to parse from config; renumber=lambda wc: config["targets"][wc.target_id].get("renumber", False),
+        chains=lambda wildcards: config["targets"][wildcards.target_id].get("chains", ""),
+        ligands=lambda wildcards: config["targets"][wildcards.target_id].get("ligands", ""),
+        cutoff=lambda wildcards: config["targets"][wildcards.target_id].get("cutoff", ""),
+        run_dssp=lambda wildcards: config["targets"][wildcards.target_id].get("run_dssp", True),
+        threshold=lambda wildcards: config["targets"][wildcards.target_id].get("dssp_threshold", ""),
+        renumber=lambda wildcards: config["targets"][wildcards.target_id].get("renumber", False)
+    conda:
+        "../envs/ada.yaml"
     shell:
         r"""
-#         mkdir -p data/02_intermediate/target
+        CMD_ARGS=""
 
-#         outprefix="data/02_intermediate/target/{wildcards.target_id}"
-#         extra=()
-#         [[ -n "{params.ligands}" ]] && extra+=( --ligands "{params.ligands}" )
-#         [[ "{params.renumber}" == "True" ]] && extra+=( --renumber )
-#         if [[ "{params.run_dssp}" == "True" ]]; then
-#           extra+=( --run_dssp --threshold "{params.thr}" )
-#         fi
+        if [ -n "{params.chains}" ]; then
+            CMD_ARGS+=" --chains {params.chains}"
+        fi
+        if [ -n "{params.ligands}" ]; then
+            CMD_ARGS+=" --ligands {params.ligands}"
+        fi
+        if [ -n "{params.cutoff}" ]; then
+            CMD_ARGS+=" --cutoff {params.cutoff}"
+        fi
 
-#         bash scripts/pipeline_clean_target.sh \
-#           -i "{input.raw}" \
-#           -o "$outprefix" \
-#           --chains "{params.chains}" \
-#           --cutoff "{params.cutoff}" \
-#           "${extra[@]}"
+        # Snakemake bools become 'True'/'False' strings here, so test explicitly:
+        if [ "{params.run_dssp}" = "True" ]; then
+            CMD_ARGS+=" --run_dssp"
+            if [ -n "{params.threshold}" ]; then
+                CMD_ARGS+=" --threshold {params.threshold}"
+            fi
+        fi
 
-#         # Your script likely writes *_processed*.pdb; copy to deterministic outputs:
-#         cp -f "${outprefix}_processed_chains_{params.chains}.pdb" "{output.processed_chains}"
+        if [ "{params.renumber}" = "True" ]; then
+            CMD_ARGS+=" --renumber"
+        fi
+
+        bash {input.script} \
+            -i {input.pdb} \
+            -o {output.processed_pdb} \
+            $CMD_ARGS
         """

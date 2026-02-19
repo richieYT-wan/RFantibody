@@ -15,96 +15,79 @@ done
 
 usage() {
   echo ""
-  echo "Usage: $0 -f <FILENAME> -h <heavychain> -o <custom_output_name>"
-  echo "Example: $0 -f path/to/file_chothia.pdb -h A -o custom_name.pdb"
-  echo "  - process chain A from /path/to/raw/file_chothia.pdb"
-  echo "  - save the result in either"
-  echo "    /path/to/processed/file_HLT.pdb"
-  echo "    or"
-  echo "    /path/to/processed/custom_name.pdb if the -o flag is used. Do not provide the extension in
-  the custom name."
-  echo "Use relative paths to input and output dir, assuming you run this script from the root (<...>/RFantibody/)"
+  echo "Usage: $0 -f <INPUT_FILENAME> -h <HEAVYCHAIN> -l <LIGHTCHAIN> [-o <FULL_OUTPUT_PATH>] [-hc <HEAVYCROP>] [-lc <LIGHTCROP>]"
+  echo "Example 1 (explicit output): $0 -f data/01_raw/framework/7eow_chothia.pdb -h A -l B -o data/02_intermediate/framework/7eow_HLT.pdb"
+  echo "Example 2 (automatic output): $0 -f data/01_raw/framework/7eow_chothia.pdb -h A -l B"
+  echo "  - INPUT_FILENAME: Path to the input Chothia PDB file."
+  echo "  - HEAVYCHAIN: The heavy chain ID to process (e.g., 'A')."
+  echo "  - LIGHTCHAIN: The light chain ID to process (e.g., 'B')."
+  echo "  - FULL_OUTPUT_PATH (optional): The complete path where the HLT PDB file should be saved."
+  echo "    If not provided, output will be derived from input: e.g., 'data/01_raw/processed/7eow_HLT.pdb'"
+  echo "  - HEAVYCROP (optional): Residue number to crop the heavy chain at."
+  echo "  - LIGHTCROP (optional): Residue number to crop the light chain at."
   echo ""
   exit 1
 }
 
-
 # initialise variables
-FILENAME=""
-OUTPUT=""
+INPUT_FILENAME=""
+FULL_OUTPUT_PATH="" # Renamed for clarity
 HEAVYCHAIN=""
 LIGHTCHAIN=""
 HEAVYCROP="" # Chain cropping at # residue
 LIGHTCROP="" # Chain cropping at # residue
-while [[ $# -gt 0 ]]; do
-  case $1 in
-    -f|--file)
-      FILENAME="$2"
-      shift 2 # Shift 2 to past argument & value
-      ;;
-    -o|--output)
-      OUTPUT="$2"
-      shift 2
-      ;;
-    -h|--heavy)
-      HEAVYCHAIN="$2"
-      shift 2
-      ;;
-    -l|--light)
-      LIGHTCHAIN="$2"
-      shift 2
-      ;;
-    -lc|--light-crop)
-      LIGHTCROP="$2"
-      shift 2
-      ;;
-    -hc|--heavy-crop)
-      HEAVYCROP="$2"
-      shift 2
-      ;;
-    --)
-      shift
-      break
-      ;;
-    --help)
-      usage
-      ;;
-    *)
-      echo "Unknown option: $1"
-      usage
-      ;;
+
+# Use getopts for robust argument parsing
+while getopts ":f:o:h:l:H:L:" opt; do
+  case ${opt} in
+    f ) INPUT_FILENAME=$OPTARG ;;
+    o ) FULL_OUTPUT_PATH=$OPTARG ;;
+    h ) HEAVYCHAIN=$OPTARG ;;
+    l ) LIGHTCHAIN=$OPTARG ;;
+    H ) HEAVYCROP=$OPTARG ;; # Assuming -H for heavy crop
+    L ) LIGHTCROP=$OPTARG ;; # Assuming -L for light crop
+    \? ) echo "Invalid option: -$OPTARG" >&2; usage ;;
+    : ) echo "Option -$OPTARG requires an argument." >&2; usage ;;
   esac
 done
+shift $((OPTIND-1)) # Shift off the options and their arguments
 
 # die if required arguments are missing
-if [[ -z "$FILENAME" || -z "$HEAVYCHAIN" || -z "$LIGHTCHAIN" ]]; then
-  echo "Error: missing required arguments"
+if [[ -z "$INPUT_FILENAME" || -z "$HEAVYCHAIN" || -z "$LIGHTCHAIN" ]]; then
+  echo "Error: missing required arguments (-f, -h, and -l)"
   echo ""
   usage
 fi
 
-# Filename handling if no custom name is provided
-if [[ -z "$OUTPUT" ]]; then
-  # File paths and renaming
-  INPUT_DIR="$(dirname "${FILENAME}")"
-  BASENAME="$(basename "${FILENAME}")"
-  if [[ "$BASENAME" == *chothia* ]]; then
-    OUTPUT="${BASENAME/chothia/HLT}"
-  else
-    base="${BASENAME%.*}"
-    ext="${BASENAME##*.}"
-    OUTPUT="${base}_HLT.${ext}"
+# If FULL_OUTPUT_PATH is not provided, generate it automatically
+if [[ -z "$FULL_OUTPUT_PATH" ]]; then
+  INPUT_DIR=$(dirname "${INPUT_FILENAME}")
+  BASENAME=$(basename "${INPUT_FILENAME}")
+
+  # Replace "_chothia" with "_HLT"
+  DERIVED_BASENAME="${BASENAME/_chothia/_HLT}"
+
+  # Ensure the extension is .pdb (if it was something else, this would fix it)
+  # This also handles cases where _chothia might not be present, just appends _HLT
+  if [[ "$DERIVED_BASENAME" != *.pdb ]]; then
+    DERIVED_BASENAME="${DERIVED_BASENAME%.*}_HLT.pdb"
   fi
-  OUTPUT="${OUTPUT%.*}"
+
+  # Determine the 'processed' directory one level up from INPUT_DIR
+  # This assumes INPUT_DIR is like 'data/01_raw/framework'
+  # and we want 'data/01_raw/processed'
+  PARENT_DIR=$(dirname "$INPUT_DIR")
+  AUTO_OUTPUT_DIR="${PARENT_DIR}/processed"
+
+  FULL_OUTPUT_PATH="${AUTO_OUTPUT_DIR}/${DERIVED_BASENAME}"
 fi
 
-# Saving outputs one path up relative to the input file and into an "HLT" directory and renames it with _HLT extension
-TMP="${ROOTDIR}${INPUT_DIR}/"
-OUTPUT_DIR="$(cd "$TMP/../" && pwd)/processed"
+# Ensure the output directory exists
+OUTPUT_DIR=$(dirname "${FULL_OUTPUT_PATH}")
 mkdir -p "$OUTPUT_DIR"
 
-echo "Converting input file ${FILENAME} to HLT format"
-echo "Saving output to "${OUTPUT_DIR}/${OUTPUT}.pdb""
+echo "Converting input file ${INPUT_FILENAME} to HLT format"
+echo "Saving output to ${FULL_OUTPUT_PATH}"
 echo ""
 
 CROPCMD=()
@@ -114,15 +97,15 @@ fi
 
 if [[ -n $LIGHTCROP ]]; then
   CROPCMD+=( --Lcrop "$LIGHTCROP")
-fi 
+fi
 
 # Convert the antibody file
 echo "Converting antibody file..."
 python "$ROOTDIR/scripts/util/chothia2HLT.py" \
-  "${FILENAME}" \
-  --heavy $HEAVYCHAIN \
-  --light $LIGHTCHAIN \
-  "${CHAIN_ARGS[@]}"
-  --output "${OUTPUT_DIR}/${OUTPUT}.pdb"
+  "${INPUT_FILENAME}" \
+  --heavy "$HEAVYCHAIN" \
+  --light "$LIGHTCHAIN" \
+  "${CROPCMD[@]}" \
+  --output "${FULL_OUTPUT_PATH}"
 
-echo "HLT conversion completed."
+echo "HLT conversion completed. File saved at ${FULL_OUTPUT_PATH}"

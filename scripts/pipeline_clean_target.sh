@@ -79,10 +79,6 @@ fi
 # Initialise shell integration activate environment
 eval "$(conda shell.bash hook)"
 conda activate ada
-echo "" 
-echo "HERE"
-echo "$(which conda)"
-echo ""
 usage() {
   cat <<EOF
 Usage:
@@ -203,7 +199,7 @@ fi
 
 CUTOFF_ARGS=()
 if [[ -n $CUTOFF_ANGSTROM ]]; then
-  CUTOFF_ARGS+=( --ligands "$CUTOFF_ANGSTROM")
+  CUTOFF_ARGS+=( --cutoff "$CUTOFF_ANGSTROM")
 fi
 # Optional: runs DSSP
 if $RUN_DSSP; then
@@ -215,12 +211,12 @@ fi
 
 echo "Cleaning PDB file $INPUT_PDB"
 
-python ./scripts/util/clean_target_pdb.py -i $INPUT_PDB -o ${OUTPUT_NAME} "${LIGANDS_ARGS[@]}" "${CUTOFF_ARGS[@]}" "${CLEANPDB_PYARGS[@]}" "${CHAIN_ARGS[@]}"
-
 if [[ -n "$CHAINS" ]]; then
   CHAINS_UNDERSCORE="$(echo "$CHAINS" | tr ',' '_')"
   OUTPUT_NAME="${OUTPUT_NAME%.*}_chains_${CHAINS_UNDERSCORE}.${OUTPUT_NAME##*.}"
 fi
+
+python ./scripts/util/clean_target_pdb.py -i $INPUT_PDB -o ${OUTPUT_NAME} "${LIGANDS_ARGS[@]}" "${CUTOFF_ARGS[@]}" "${CLEANPDB_PYARGS[@]}" "${CHAIN_ARGS[@]}"
 
 
 echo "Cleaning complete; Saving output at ${OUTPUT_NAME}"
