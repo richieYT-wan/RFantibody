@@ -1,14 +1,42 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-usage() {
-  cat <<'EOF'
-Usage:
-  bash scripts/util/make_patch_quiver_script.sh -f <framework.pdb> -t <target_processed.pdb> -T <threshold> -c <cuda_device> -n <custom_name> \ 
-  -d <n_designs> -s <n_sequences> -r <n_recycles> [-L <DESIGN_LOOPS> -S <START_RESIDUE>]
+# Define rootdir
+SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 
-Generates one runnable script per hotspot triplet patch into:
-  RFantibody/scripts/rfantibody_jobs/
+# Walk up until we find RFantibody
+ROOT_DIR="$SCRIPT_DIR"
+while [[ "$ROOT_DIR" != "/" && "$(basename "$ROOT_DIR")" != "RFantibody" ]]; do
+  ROOT_DIR="$(dirname "$ROOT_DIR")"
+done
+
+usage() {
+  cat << 'EOF'
+Usage:
+  script.sh [OPTIONS]
+
+Required arguments:
+  -f, --framework PATH        Path to framework PDB (Chothia annotated)
+  -t, --target PATH           Path to target PDB
+  -T, --threshold FLOAT       summed RSA Threshold value 
+
+Optional arguments:
+  -S, --start-spec STR        Start specification (default: unset)
+  -c, --cuda INT              CUDA device ID
+  -d, --n-designs INT         Number of designs to generate
+  -s, --n-seqs INT            Number of sequences
+  -r, --n-recycles INT        Number of recycles
+  -L, --design-loops STR      Loop design specification
+  -O, --jobs-dir DIR          Output jobs directory
+  -R, --results-dir DIR       Results saving directory (default: auto)
+
+Help:
+  -h, --help                  Show this help message and exit
+
+Examples:
+  script.sh -f fw.pdb -t target.pdb --n-designs 50
+  script.sh --framework fw.pdb --target target.pdb --cuda 0
 
 Patch criteria:
 - same chain
@@ -29,41 +57,64 @@ CUSTOM_NAME=""
 N_DESIGNS=10
 N_SEQS=10
 N_RECYCLES=10
-DESIGN_LOOPS="H1:7,H2:5-7,H3:6-19"
+DESIGN_LOOPS="H1:7,H2:5-7,H3:6-18"
 JOBS_DIR="" 
+RESULTS_DIR=""
 # TODO: Refactor and make it handle flags a bit more explicitly
 #       Add the option to give jobs custom names (reflected in both the script AND the --output name in the pipeline_rfantibody call)
-while getopts ":f:t:S:T:h:c:d:s:r:L:O" opt; do
-  case "$opt" in
-    f) framework="$OPTARG" ;;
-    t) target="$OPTARG" ;;
-    S) start_spec="$OPTARG" ;;
-    T) threshold="$OPTARG" ;;
-    c) CUDA="$OPTARG" ;;
-    d) N_DESIGNS="$OPTARG" ;;
-    s) N_SEQS="$OPTARG" ;; 
-    r) N_RECYCLES="$OPTARG" ;;
-    L) DESIGN_LOOPS="$OPTARG" ;;
-    O) JOBS_DIR="$OPTARG" ;;
-    # n) CUSTON_NAME="$OPTARG" ;;
-    h) usage ;;
-    \?) usage ;;
-    :) usage ;;
+#       Keep the Hotspot naming convention ? --> Don't give custom name in the --output maybe to save the info in naming convention
+# --- long/short option parsing (GNU-style) ---
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -f|--framework)
+      framework="$2"; shift 2 ;;
+    -t|--target)
+      target="$2"; shift 2 ;;
+    -S|--start-spec)
+      start_spec="$2"; shift 2 ;;
+    -T|--threshold)
+      threshold="$2"; shift 2 ;;
+    -c|--cuda)
+      CUDA="$2"; shift 2 ;;
+    -d|--n-designs)
+      N_DESIGNS="$2"; shift 2 ;;
+    -s|--n-seqs)
+      N_SEQS="$2"; shift 2 ;;
+    -r|--n-recycles)
+      N_RECYCLES="$2"; shift 2 ;;
+    -L|--design-loops)
+      DESIGN_LOOPS="$2"; shift 2 ;;
+    -O|--jobs-dir)
+      JOBS_DIR="$2"; shift 2 ;;
+    -R|--results-dir)
+      RESULTS_DIR="$2"; shift 2 ;;
+    -h|--help)
+      usage; exit 0 ;;
+    --)
+      shift; break ;;
+    -*)
+      echo "" 
+      echo "Unknown option: $1; Exiting" >&2
+      echo "" 
+      usage | grep "Help:" -B 99 -A 1; exit 1 ;;
+    *)
+      break ;;
   esac
 done
 
-[[ -n "$framework" ]] || usage
-[[ -n "$target"    ]] || usage
-[[ -n "$threshold" ]] || usage
+# Require args
+[[ -n "$framework" ]] || { echo "Framework is required!" >&2; echo ""; usage; }
+[[ -n "$target"    ]] || { echo "Target is required!" >&2; echo ""; usage; }
+[[ -n "$threshold" ]] || { echo "Threshold is required!" >&2; echo ""; usage; }
 [[ -f "$framework" ]] || { echo "ERROR: framework not found: $framework" >&2; exit 2; }
 [[ -f "$target"    ]] || { echo "ERROR: target not found: $target" >&2; exit 2; }
 
 # validate threshold is numeric
 gawk -v T="$threshold" 'BEGIN{ if (T+0 != T) exit 1 }' || { echo "ERROR: -T must be numeric (e.g. 1.5)" >&2; exit 2; }
-if [[ -n "${JOBS_DIR}" ]]; then
-  JOBS_DIR="./scripts/rfantibody_jobs"
+if [[ -z "${JOBS_DIR}" ]]; then
+  JOBS_DIR="${ROOT_DIR}/scripts/rfantibody_jobs"
 fi
-LOGDIR="$JOBS_DIR/logs"
+LOGDIR="$(realpath -m "$JOBS_DIR/logs")"
 mkdir -p "$JOBS_DIR" "$LOGDIR"
 
 # basenames without extensions
@@ -74,7 +125,6 @@ sanitize() {
   printf "%s" "$1" \
   | sed -E 's/[^A-Za-z0-9._-]+/_/g; s/^_+//; s/_+$//; s/_+/_/g'
 }
-
 
 fw_tag="$(sanitize "$fw_base")"
 tg_tag="$(sanitize "$tg_base")"
@@ -167,15 +217,19 @@ while IFS= read -r patch; do
   ((n++)) || true
 
   patch_slug="$(echo "$patch" | tr ',' '_' | tr -c 'A-Za-z0-9_-' '_' | sed 's/__\+/_/g')"
-
-  script_path="${JOBS_DIR}/job_${fw_tag}__${tg_tag}__T${threshold}__${patch_slug}.sh"
-  log_path="${JOBS_DIR}/job_${fw_tag}__${tg_tag}__T${threshold}__${patch_slug}.log"
+  JOB_FILENAME="job__fw${fw_tag}__tg${tg_tag}__T${threshold}__hs${patch_slug}"
+  script_path="${JOBS_DIR}/${JOB_FILENAME}.sh"
+  log_path="${LOGDIR}/${JOB_FILENAME}.log"
 
 custom_name_cmd=()
 if [[ -n $CUSTOM_NAME ]]; then
 custom_name_cmd=( --output-name "$CUSTOM_NAME")
 fi
 
+results_cmd=()
+if [[ -n RESULTS_DIR ]]; then
+results_cmd=( --results-dir "$RESULTS_DIR")
+fi
 
   cat > "$script_path" <<EOF
 #!/usr/bin/env bash
@@ -209,11 +263,12 @@ nohup bash "\$ROOTDIR/scripts/pipeline_rfantibody.sh" \\
   -f "$framework" \\
   -t "$target" \\
   --hotspots "$patch" \\
+  ${results_cmd[@]} \\
   > "$log_path" 2>&1
 EOF
 
   chmod +x "$script_path"
 done <<< "$patches"
 
-echo "Generated ${n} scripts in: ${OUTDIR}"
+echo "Generated ${n} scripts in: ${JOBS_DIR}"
 echo "Logs will go to: ${LOGDIR}"

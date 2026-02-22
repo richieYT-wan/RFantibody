@@ -8,21 +8,26 @@
 wildcard_constraints:
     chains_tag = r"(_chains_[A-Za-z0-9_]+)?"
 
+# Convoluted workaround due to naming conventions and Snakemake DAG limitations...
 rule download_target_pdb:
     output:
         "data/01_raw/target/{target_id}.pdb"
     params:
-        url=lambda wildcards: config["targets"][wildcards.target_id]["rcsb_pdb_url"]
+        url=lambda wildcards: config["targets"][wildcards.target_id]["rcsb_pdb_url"],
+        save_filename= lambda wildcards: config['targets'][wildcards.target_id]['save_filename']
     shell:
-        "curl -L {params.url} -o {output}"
+        """
+        curl -L {params.url} -o {output}
+        """
 
 rule clean_target_pdb:
     input:
         pdb="data/01_raw/target/{target_id}.pdb",
         script="scripts/pipeline_clean_target.sh"
     output:
-        processed_pdb="data/02_intermediate/target/{target_id}_processed{chains_tag}.pdb"
+        processed_pdb="data/02_intermediate/target/{target_id}_processed.pdb"
     params:
+        save_filename=lambda wildcards: config["targets"][wildcards.target_id]['save_filename'],
         chains=lambda wildcards: config["targets"][wildcards.target_id].get("chains", ""),
         ligands=lambda wildcards: config["targets"][wildcards.target_id].get("ligands", ""),
         cutoff=lambda wildcards: config["targets"][wildcards.target_id].get("cutoff", ""),
@@ -33,32 +38,32 @@ rule clean_target_pdb:
         "../envs/ada.yaml"
     shell:
         r"""
-        CMD_ARGS=""
+        set -euo pipefail
+        mkdir -p "$(dirname "{output.processed_pdb}")"
 
-        if [ -n "{params.chains}" ]; then
-            CMD_ARGS+=" --chains {params.chains}"
+        CMD_ARGS=()
+
+        if [[ -n "{params.chains}" ]]; then
+            CMD_ARGS+=(--chains "{params.chains}")
         fi
-        if [ -n "{params.ligands}" ]; then
-            CMD_ARGS+=" --ligands {params.ligands}"
+        if [[ -n "{params.ligands}" ]]; then
+            CMD_ARGS+=(--ligands "{params.ligands}")
         fi
-        if [ -n "{params.cutoff}" ]; then
-            CMD_ARGS+=" --cutoff {params.cutoff}"
+        if [[ -n "{params.cutoff}" ]]; then
+            CMD_ARGS+=(--cutoff "{params.cutoff}")
         fi
 
-        # Snakemake bools become 'True'/'False' strings here, so test explicitly:
-        if [ "{params.run_dssp}" = "True" ]; then
-            CMD_ARGS+=" --run_dssp"
-            if [ -n "{params.threshold}" ]; then
-                CMD_ARGS+=" --threshold {params.threshold}"
+        if [[ "{params.run_dssp}" == "True" ]]; then
+            CMD_ARGS+=(--run_dssp)
+            if [[ -n "{params.threshold}" ]]; then
+                CMD_ARGS+=(--threshold "{params.threshold}")
             fi
         fi
 
-        if [ "{params.renumber}" = "True" ]; then
-            CMD_ARGS+=" --renumber"
+        if [[ "{params.renumber}" == "True" ]]; then
+            CMD_ARGS+=(--renumber)
         fi
 
-        bash {input.script} \
-            -i {input.pdb} \
-            -o {output.processed_pdb} \
-            $CMD_ARGS
+        bash "{input.script}" -i "{input.pdb}" -o "{output.processed_pdb}" "${{CMD_ARGS[@]}}"
+        mv "{input.pdb}" "data/01_raw/target/{params.save_filename}"
         """

@@ -22,11 +22,41 @@ frameworks:
   
 
 targets:
-  CD33_7AW6:
+  # EXPLICIT TARGET "duplication" to avoid further shenanigans downstream with "processed_chains"
+  # This was done on purpose due to limitations in wildcards and chain tags handling downstream
+  # EXPLICIT "save_filename" field definition for the same purpouses
+  CD33_7AW6_A:
     target_name: "CD33"
     pdb_id: "7AW6"
+    save_filename: "CD33_7AW6.pdb"
     rcsb_pdb_url: "https://files.rcsb.org/download/7AW6.pdb"
     chains: "A"
+    ligands: "NAG,FVP"
+    cutoff: 4.0
+    run_dssp: true
+    dssp_threshold: 0.4
+    renumber: false
+    format: "qv"
+
+  CD33_7AW6_B:
+    target_name: "CD33"
+    pdb_id: "7AW6"
+    save_filename: "CD33_7AW6.pdb"
+    rcsb_pdb_url: "https://files.rcsb.org/download/7AW6.pdb"
+    chains: "B"
+    ligands: "NAG,FVP"
+    cutoff: 4.0
+    run_dssp: true
+    dssp_threshold: 0.4
+    renumber: false
+    format: "qv"
+
+  CD33_7AW6_AB:
+    target_name: "CD33"
+    pdb_id: "7AW6"
+    save_filename: "CD33_7AW6.pdb"
+    rcsb_pdb_url: "https://files.rcsb.org/download/7AW6.pdb"
+    chains: "B"
     ligands: "NAG,FVP"
     cutoff: 4.0
     run_dssp: true
@@ -37,7 +67,7 @@ targets:
 experiments:
   # This experiment is for 7AW6, starts at res A148,
   # Takes RSA 1.75 as threshold, 10 designs (10 sequences per)
-  7AW6_A148_RSA1p75_10d_10s:
+  7AW6_A_startA148_rsa1p75_nd10_ns10:
   # mostly defined by framework (fw), target (hs), hotspot patch (hs)
     format: "qv"
     design_loops: "H1:7,H2:5-7,H3:6-19"
@@ -48,35 +78,30 @@ experiments:
     hotspot_prop: 0.1
     rsa_threshold: 1.75 # Sum RSA over 3 residues as available patch
     start_spec: "A148" # start residue (we do A148 for C chain)
-
+  # cuda_device: Not specified (should specify if using Vertex)
 
 runs:
-  run_cd33_7eow:
+  run_cd33_7eow_A148:
     framework_id: "7eow"
-    target_id: "CD33_7AW6"
-    format: "qv"
-    experiment: "7AW6_A148_RSA1p75_10d_10s"
+    target_id: "CD33_7AW6_A"
+    experiment: "7AW6_A_startA148_rsa1p75_nd10_ns10"
 
-  run_cd33_3eak:
+  run_cd33_3eak_A148:
     framework_id: "3eak"
-    target_id: "CD33_7AW6"
-    format: qv
-    experiment: "7AW6_A148_RSA1p75_10d_10s"
+    target_id: "CD33_7AW6_A"
+    experiment: "7AW6_A_startA148_rsa1p75_nd10_ns10"
 
-  run_cd33_7xl0:
+  run_cd33_7xl0_A148:
     framework_id: "7xl0"
-    target_id: "CD33_7AW6"
-    format: qv
-    experiment: "7AW6_A148_RSA1p75_10d_10s"
+    target_id: "CD33_7AW6_A"
+    experiment: "7AW6_A_startA148_rsa1p75_nd10_ns10"
 
-  run_cd33_8coh:
+  run_cd33_8coh_A148:
     framework_id: "8coh"
-    target_id: "CD33_7AW6"
-    format: qv
-    experiment: "7AW6_A148_RSA1p75_10d_10s"
+    target_id: "CD33_7AW6_A"
+    experiment: "7AW6_A_startA148_rsa1p75_nd10_ns10"
 
-  run_cd33_8z8v:
+  run_cd33_8z8v_A148:
     framework_id: "8z8v"
-    target_id: "CD33_7AW6"
-    format: qv
-    experiment: "7AW6_A148_RSA1p75_10d_10s"
+    target_id: "CD33_7AW6_A"
+    experiment: "7AW6_A_startA148_rsa1p75_nd10_ns10"

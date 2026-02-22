@@ -12,7 +12,7 @@ example_outputs_*
 check.point
 outputs/*
 !outputs/.gitkeep
-!outputs/merged_parsed_output_cd33_5vhh.csv
+!outputs/rfantibody_generated_outputs_cd33_5vhh.csv
 test_report.txt
 dgl-2.4.0+cu118-cp310-cp310-manylinux1_x86_64.*
 *_report.txt

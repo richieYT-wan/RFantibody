@@ -211,10 +211,11 @@ fi
 
 echo "Cleaning PDB file $INPUT_PDB"
 
-if [[ -n "$CHAINS" ]]; then
-  CHAINS_UNDERSCORE="$(echo "$CHAINS" | tr ',' '_')"
-  OUTPUT_NAME="${OUTPUT_NAME%.*}_chains_${CHAINS_UNDERSCORE}.${OUTPUT_NAME##*.}"
-fi
+# This here needs to be removed as we will now handle the naming through pipelines // or explicitly with -o, no more implicit renaming
+# if [[ -n "$CHAINS" ]]; then
+#   CHAINS_UNDERSCORE="$(echo "$CHAINS" | tr ',' '_')"
+#   OUTPUT_NAME="${OUTPUT_NAME%.*}_chains_${CHAINS_UNDERSCORE}.${OUTPUT_NAME##*.}"
+# fi
 
 python ./scripts/util/clean_target_pdb.py -i $INPUT_PDB -o ${OUTPUT_NAME} "${LIGANDS_ARGS[@]}" "${CUTOFF_ARGS[@]}" "${CLEANPDB_PYARGS[@]}" "${CHAIN_ARGS[@]}"
 
