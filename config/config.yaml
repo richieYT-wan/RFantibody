@@ -71,12 +71,12 @@ experiments:
   # mostly defined by framework (fw), target (hs), hotspot patch (hs)
     format: "qv"
     design_loops: "H1:7,H2:5-7,H3:6-19"
-    diffuser_t: 15 # minimum of T=15 for debugging; 50 normally
-    n_designs: 1 # 10 designs per fw-tg-hs
-    n_seqs: 1
-    n_recycles: 1
-    hotspot_prop: 0.1
-    rsa_threshold: 2. #1.75 # Sum RSA over 3 residues as available patch
+    diffuser_t: 50 # minimum of T=15 for debugging; 50 normally
+    n_designs: 15 # 10 designs per fw-tg-hs
+    n_seqs: 10
+    n_recycles: 10
+    hotspot_prop: 0.2
+    rsa_threshold: 1.75 # Sum RSA over 3 residues as available patch
     start_spec: "A148" # start residue (we do A148 for C chain)
   # cuda_device: Not specified (should specify if using Vertex)
 
