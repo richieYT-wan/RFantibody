@@ -11,10 +11,10 @@ rule generate_patches:
         generator="scripts/util/make_patch_pipeline_script.sh"
     output:
         run_config="data/03_jobs/{run_id}/run_config.yaml",
-        patches_dir=directory("data/03_jobs/{run_id}/jobs"),
+        jobs_dir=directory("data/03_jobs/{run_id}/jobs"),
         manifest="data/03_jobs/{run_id}/jobs_list.tsv"
     params:
-        patches_dir=directory("data/03_jobs/{run_id}/jobs"),
+        jobs_dir=directory("data/03_jobs/{run_id}/jobs"),
         results_dir=directory("data/04_results/{run_id}/"),
         rsa_threshold=lambda wildcards: str(get_exp_cfg(wildcards.run_id, config).get("rsa_threshold", 0.2)),
         design_loops=lambda wildcards: str(get_exp_cfg(wildcards.run_id, config).get("design_loops", "")),
@@ -25,13 +25,14 @@ rule generate_patches:
         n_seqs=lambda wildcards: str(get_exp_cfg(wildcards.run_id, config).get("n_seqs", 10)),
         n_recycles=lambda wildcards: str(get_exp_cfg(wildcards.run_id, config).get("n_recycles", 10)),
         cuda_device=lambda wildcards: str(get_exp_cfg(wildcards.run_id, config).get("cuda_device", 0)),
-        format=lambda wildcards: str(get_exp_cfg(wildcards.run_id, config).get("format", "qv"))
+        res_format=lambda wildcards: str(get_exp_cfg(wildcards.run_id, config).get("format", "qv")),
+        diffuser_t=lambda wildcards: str(get_exp_cfg(wildcards.run_id, config).get("diffuser_t", 50))
     run:
         import os
         import yaml
         from snakemake.shell import shell
         from datetime import datetime as dt
-        os.makedirs(output.patches_dir, exist_ok=True)
+        os.makedirs(output.jobs_dir, exist_ok=True)
         # Saving run config to know which we are writing to
         timestamp = dt.now().strftime("%y%m%d_%H%M%S")
         run_id = wildcards.run_id
@@ -52,25 +53,24 @@ rule generate_patches:
         shell(r"""
         set -euo pipefail
         echo {output}
-        mkdir -p {output.patches_dir}
+        mkdir -p {output.jobs_dir}
 
         # Run generator inside run-specific folder so it doesn't collide with other runs
         TG="$(realpath "{input.target}")"
         FW="$(realpath "{input.framework}")"
         GEN="$(realpath "{input.generator}")"
-        # cd "{output.patches_dir}"
 
-        bash "$GEN" -f "$FW" -t "$TG" -T "{params.rsa_threshold}" -c "{params.cuda_device}" -d "{params.n_designs}" -s "{params.n_seqs}" -r "{params.n_recycles}" -O "{params.patches_dir}" -R {params.results_dir} {params.loops_arg} {params.start_arg}
+        # Generator writes into job directory
+        bash "$GEN" -f "$FW" -t "$TG" -T "{params.rsa_threshold}" -c "{params.cuda_device}" -d "{params.n_designs}" -s "{params.n_seqs}" -r "{params.n_recycles}" -O "{params.jobs_dir}" -R {params.results_dir} -F {params.res_format} --diffuser-t {params.diffuser_t} {params.loops_arg} {params.start_arg}
 
-        if [ ! -d {output.patches_dir} ]; then
-          echo "ERROR: generator did not create {output.patches_dir}" >&2
+        if [ ! -d {output.jobs_dir} ]; then
+          echo "ERROR: generator did not create {output.jobs_dir}" >&2
           exit 2
         fi
-        # Generator writes into job directory
 
         # Write manifest
         : > "{output.manifest}"
-        for s in {params.patches_dir}/*.sh; do
+        for s in {params.jobs_dir}/*.sh; do
           [ -e "$s" ] || break
           printf "%s\t%s\n" "$(realpath "$s")" >> "{output.manifest}"
         done

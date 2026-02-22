@@ -17,17 +17,19 @@ workdir: find_repo_root()
 include: "rules/process_framework.smk"
 include: "rules/process_target.smk" # New include
 include: "rules/generate_patches.smk"
-# include: "rules/run_rfantibody.smk"
-# include: "rules/parse_outputs.smk"
+include: "rules/run_rfantibody.smk"
+include: "rules/parse_outputs.smk"
 
 # Run ID handling
 RUN_IDS = list(config.get("runs", {}).keys())
 rule all:
     input:
         expand("data/02_intermediate/framework/{framework_id}_HLT.pdb",
-               framework_id=config["frameworks"].keys()),
+                framework_id=config["frameworks"].keys()), # Get the HLT formatted frameworks, runs the make_framework.smk
         expand("data/02_intermediate/target/{target_id}_processed.pdb",
-               target_id=config["targets"].keys()),
-#         RAW_TARGET_OUTPUTS,
-#         PROCESSED_TARGET_OUTPUTS,
-        expand("data/03_jobs/{run_id}/jobs_list.tsv", run_id=RUN_IDS)
+                target_id=config["targets"].keys()), # Get the processed targets, runs the make_target.smk
+        expand("data/03_jobs/{run_id}/jobs_list.tsv", run_id=RUN_IDS), # Creates the run jobs, runs generate_patches.smk
+        expand("data/04_results/{run_id}", run_id=RUN_IDS), # Runs the jobs, runs run_rfantibody.smk
+        expand("data/04_results/{run_id}/.parse_complete", run_id=RUN_IDS), # parses the outputs, runs parse_outputs.smk
+        expand("data/04_results/{run_id}/merged_parsed_outputs.csv", run_id=RUN_IDS) # parses the outputs, runs parse_outputs.smk
+       

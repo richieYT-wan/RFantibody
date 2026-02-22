@@ -71,12 +71,12 @@ experiments:
   # mostly defined by framework (fw), target (hs), hotspot patch (hs)
     format: "qv"
     design_loops: "H1:7,H2:5-7,H3:6-19"
-    diffuser_t: 50
-    n_designs: 10 # 10 designs per fw-tg-hs
-    n_seqs: 10
-    n_recycles: 10
+    diffuser_t: 15 # minimum of T=15 for debugging; 50 normally
+    n_designs: 1 # 10 designs per fw-tg-hs
+    n_seqs: 1
+    n_recycles: 1
     hotspot_prop: 0.1
-    rsa_threshold: 1.75 # Sum RSA over 3 residues as available patch
+    rsa_threshold: 2. #1.75 # Sum RSA over 3 residues as available patch
     start_spec: "A148" # start residue (we do A148 for C chain)
   # cuda_device: Not specified (should specify if using Vertex)
 
@@ -85,23 +85,28 @@ runs:
     framework_id: "7eow"
     target_id: "CD33_7AW6_A"
     experiment: "7AW6_A_startA148_rsa1p75_nd10_ns10"
+    n_jobs: 5
 
   run_cd33_3eak_A148:
     framework_id: "3eak"
     target_id: "CD33_7AW6_A"
     experiment: "7AW6_A_startA148_rsa1p75_nd10_ns10"
+    n_jobs: 5
 
   run_cd33_7xl0_A148:
     framework_id: "7xl0"
     target_id: "CD33_7AW6_A"
     experiment: "7AW6_A_startA148_rsa1p75_nd10_ns10"
+    n_jobs: 5
 
   run_cd33_8coh_A148:
     framework_id: "8coh"
     target_id: "CD33_7AW6_A"
     experiment: "7AW6_A_startA148_rsa1p75_nd10_ns10"
+    n_jobs: 5
 
   run_cd33_8z8v_A148:
     framework_id: "8z8v"
     target_id: "CD33_7AW6_A"
     experiment: "7AW6_A_startA148_rsa1p75_nd10_ns10"
+    n_jobs: 5

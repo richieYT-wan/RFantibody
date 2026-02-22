@@ -298,7 +298,7 @@ fi
 START_TIME=$(date '+%Y-%m-%d %H:%M:%S')
 
 rfdlog() {
-  echo "[START $START_TIME] Script started; Format: PDB"
+  echo "[START $START_TIME] Script started; Format: $FORMAT"
   echo ""
   echo "******************"
   echo "Starting pipeline"

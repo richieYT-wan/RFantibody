@@ -25,4 +25,6 @@ scripts/quiver_jobs/*
 scripts/rfantibody_jobs/logs
 !scripts/quiver_jobs/README.txt
 
+data/03_jobs/*
+!data/*/.gitkeep
 scripts/util/test.sh
