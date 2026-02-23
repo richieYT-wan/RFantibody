@@ -1,14 +1,15 @@
+name: ada
 channels:
   - conda-forge
   - bioconda
 dependencies:
-  - python=3.11
-  - biopython
+  - python=3.13
+  - biopython=1.86
   - pandas
   - joblib
   - curl
   - gawk
   - sed
   - coreutils
-  # DSSP:
-  - mkdssp
+  - dssp=4.5.8
+  - snakemake=9.16.2

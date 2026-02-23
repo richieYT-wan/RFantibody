@@ -6,9 +6,10 @@ from utils import find_repo_root
 WORKFLOW_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(WORKFLOW_DIR))
 
+# add ADA env
+ADAENV = "workflows/envs/ada.yaml"
 # Load configuration from config.yaml
 configfile: "config/config.yaml"
-
 # Define working directory (relative to the Snakefile)
 workdir: find_repo_root()
 # workdir: "../../" # This sets the working directory to the RFantibody/ root

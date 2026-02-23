@@ -36,7 +36,7 @@ rule merge_outputs:
     output:
         csv="data/04_results/{run_id}/merged_parsed_outputs.csv"
     conda:
-        "../envs/ada.yaml"
+        ADAENV
     run:
         import os
         import glob
