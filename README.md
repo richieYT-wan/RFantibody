@@ -152,6 +152,75 @@ Example:
   bash parse_output.sh --format qv -i outputs/260212_115931_TestRunQuiver_Fw7eow_HLT_TgCD33_7AW6_processed_chains_A_HsA148A150A151/03_RF2_folds.qv
 ```
 
+
+# Snakemake
+
+This section below outlines how to run RFantibody using Snakemake (currently, the pipelines work locally and with gcloud buckets when adding the prefix).
+
+The pipeline has currently been setup with `snakemake==9.16.2`. 
+
+Currently, 5 run campaigns have been set (5 different scaffolds: 3EAK, 7EOW, 7XL0, 8COH, 8Z8V, one target: CD33, chain A, domain C). See config/config.yaml for more information. 
+
+The config file is separated in multiple sections:
+
+- `frameworks`, which contains parameters related to input reference frameworks (pdb ID, type, URL for download, etc)
+- `targets`, which contains parameters related to targets incl. ligands, occlusion thresholds, chains, etc.
+- `experiments`:  which defines the generation parameters (such as `n_design`, etc.) and hotspot patch picking parameters (RSA thresholds, etc)
+- `runs`: which defines a "campaign", with an associated experiment
+
+Example: 
+
+```
+experiments:
+  # This experiment is for 7AW6, starts at res A148,
+  # Takes RSA 1.75 as threshold, 10 designs (10 sequences per)
+  7AW6_A_startA148_rsa1p75_nd10_ns10:
+  # mostly defined by framework (fw), target (hs), hotspot patch (hs)
+    format: "qv"
+    design_loops: "H1:7,H2:5-7,H3:6-19"
+    diffuser_t: 50 # minimum of T=15 for debugging; 50 normally
+    n_designs: 15 # 15 designs per fw-tg-hs
+    n_seqs: 10
+    n_recycles: 10
+    hotspot_prop: 0.2
+    rsa_threshold: 1.75 # Sum RSA over 3 residues as available patch
+    start_spec: "A148" # start residue (we do A148 for C chain)
+runs:
+  run_cd33_7eow_A148:
+    framework_id: "7eow"
+    target_id: "CD33_7AW6_A"
+    experiment: "7AW6_A_startA148_rsa1p75_nd10_ns10"
+    n_jobs: 5
+```
+
+
+The pipeline contains 5 rules, which executes various parts of the pipeline. Every input, intermediate output and final output are located in `data/*`.
+
+
+1) **Framework processing**: Input frameworks, as defined in `config/config.yaml` under `frameworks`. If the framework (in chothia format) is not present, it will be downloaded from SAbDab and saved under `data/01_raw/framework/<PDB_ID>_chothia.pdb`. The processed frameworks (To HLT format) are saved in `data/02_intermediate/framework/<PDB_ID>_HLT.pdb`.
+2) **Target processing**: Input targets,  as defined in `config/config.yaml` under `targets`. Targets are defined by their name, PDB ID and chains. For example, using only chain A of CD33 (PDB ID: 7AW6), is listed in the targets section of the config file as `CD33_7AW6_A`. The occlusion angstrom threshold and RSA availability thresholds are also defined in this config file.
+
+Processed inputs (frameworks and targets) go in `data/02_intermediate/{framework,target}`.
+
+3) **Hotspot patches picking and job script generation**: Hotspot picking parameters are defined in the config file under `experiments`. The `design loops` parameter as well as number of designs, seqs, etc. are also defined in this section. Generated jobs are saved as .sh scripts in `data/03_jobs/<run_id>/jobs/`
+4) **Running generated jobs**: Jobs generated in part 3) will be run sequentially (behaviour to change to allow true parallelisation), writing results in `data/04_results/<run_id>/`
+5) **Final output parsing**: All results related to a given `run_id` will be processed together and a final output file will be saved in `data/04_results/<run_id>/merged_parsed_outputs.csv`.
+
+The full pipeline can be run from the RFantibody root using
+```
+snakemake --snakefile workflows/snakefile data/04_results/<run_id>/merged_parsed_outputs.csv --cores 1
+```
+
+[//]: # (TODO UPDATE README:)
+**_to update_**: gcloud part
+```
+snakemake \
+  --use-conda \
+  --default-storage-provider gcs \
+  --default-storage-prefix gs://em52-ab-develop-analytics-prod-f684/data/snakemake/rfantibody/ \ 
+  --snakefile workflows/snakefile data/04_results/<run_id>/merged_parsed_outputs.csv
+```
+
 ----------------
 
 # Original README

@@ -1,21 +1,26 @@
 frameworks:
   3eak:
+    pdb_id: "3EAK"
     sabdab_chothia_url: "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab/pdb/3eak/?scheme=chothia"
     kind: "nanobody"          # nanobody or antibody
     chain: "A"
   7eow:
+    pdb_id: "7EOW"
     sabdab_chothia_url: "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab/pdb/7eow/?scheme=chothia"
     kind: "nanobody"          # nanobody or antibody
     chain: "B"
   7xl0:
+    pdb_id: "7XL0"
     sabdab_chothia_url: "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab/pdb/7xl0/?scheme=chothia"
     kind: "nanobody"
     chain: "A"
   8coh:
+    pdb_id: "8COH"
     sabdab_chothia_url: "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab/pdb/8coh/?scheme=chothia"
     kind: "nanobody"
     chain: "A"
   8z8v:
+    pdb_id: "8Z8V"
     sabdab_chothia_url: "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab/pdb/8z8v/?scheme=chothia"
     kind: "nanobody"
     chain: "B"

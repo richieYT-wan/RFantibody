@@ -6,10 +6,12 @@ __pycache__
 weights
 include/dgl/*.whl
 T_50_omega_1000_min_sigma_0_02_min_b_1_5_max_b_2_5_schedule_linear.pkl
+*schedule_linear*.pkl
 cached_schedules
 example_outputs
 example_outputs_*
 check.point
+inputs/*
 outputs/*
 !outputs/.gitkeep
 !outputs/rfantibody_generated_outputs_cd33_5vhh.csv
@@ -19,13 +21,13 @@ dgl-2.4.0+cu118-cp310-cp310-manylinux1_x86_64.*
 dist
 *.sif
 
-logs/*
+logs/*/
 !logs/.gitkeep
 scripts/quiver_jobs/*
 scripts/rfantibody_jobs/logs
 !scripts/quiver_jobs/README.txt
 
-data/04_results/
-data/03_jobs/
+data/*/
 !data/*/.gitkeep
 scripts/util/test.sh
+outputs/rfantibody_generated_outputs_cd33_5vhh.csv
