@@ -35,7 +35,7 @@ rule clean_target_pdb:
         threshold=lambda wildcards: config["targets"][wildcards.target_id].get("dssp_threshold", ""),
         renumber=lambda wildcards: config["targets"][wildcards.target_id].get("renumber", False)
     conda:
-        ADAENV
+        str(ADAENV)
     shell:
         r"""
         set -euo pipefail

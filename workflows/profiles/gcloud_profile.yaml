@@ -1,0 +1,5 @@
+use-conda: true
+cores: 1
+default-storage-provider: gcs
+default-storage-prefix: "gs://em52-ab-develop-analytics-prod-f684/data/snakemake/rfantibody/"
+snakefile: workflows/snakefile

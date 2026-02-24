@@ -89,7 +89,7 @@ experiments:
   debug_run_config:
     format: "qv"
     design_loops: "H1:7,H2:6,H3:10"
-    diffuser_t: 2 # minimum of T=2 for debugging; 50 normally
+    diffuser_t: 15 # minimum of T=15 (rfab constraint) for debugging; 50 normally
     n_designs: 1
     n_seqs: 1
     n_recycles: 1
@@ -103,6 +103,12 @@ experiments:
 runs:
   sample_run_7eow:
     framework_id: "7eow"
+    target_id: "CD33_7AW6_A"
+    experiment: "debug_run_config"
+    n_jobs: 5
+
+  sample_run_3eak:
+    framework_id: "3eak"
     target_id: "CD33_7AW6_A"
     experiment: "debug_run_config"
     n_jobs: 5

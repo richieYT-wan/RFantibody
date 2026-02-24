@@ -36,13 +36,12 @@ rule merge_outputs:
     output:
         csv="data/04_results/{run_id}/merged_parsed_outputs.csv"
     conda:
-        ADAENV
+        str(ADAENV)
     run:
         import os
         import glob
         import pandas as pd
         # glob all the ./parsed_output.csv files
-        print(f"{input.run_dir}/*/*smk*.csv")
         files = glob.glob(f"{input.run_dir}/*/*parsed_outputs_smk.csv*")
         # read + concat 
         df = pd.concat([pd.read_csv(x) for x in files])
