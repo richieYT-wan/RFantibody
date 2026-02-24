@@ -34,6 +34,7 @@ targets:
     target_name: "CD33"
     pdb_id: "7AW6"
     save_filename: "CD33_7AW6.pdb"
+    processed_filename: "CD33_7AW6_A_processed.pdb"
     rcsb_pdb_url: "https://files.rcsb.org/download/7AW6.pdb"
     chains: "A"
     ligands: "NAG,FVP"

@@ -11,21 +11,25 @@ wildcard_constraints:
 # Convoluted workaround due to naming conventions and Snakemake DAG limitations...
 rule download_target_pdb:
     output:
+        # TODO CHECKS: cant we just have {savefile} as the wildcard here and define it in the snake?
         "data/01_raw/target/{target_id}.pdb"
     params:
         url=lambda wildcards: config["targets"][wildcards.target_id]["rcsb_pdb_url"],
         save_filename= lambda wildcards: config['targets'][wildcards.target_id]['save_filename']
     shell:
         """
+        # like here it would be -o {params.save_filename} and we touch {output} then delete in the next part ?
+        # ^THAT^ OR we just leave it as it is OR we accept duplicates target files with just _A/B/etc. filenames
         curl -L {params.url} -o {output}
         """
 
 rule clean_target_pdb:
     input:
         pdb="data/01_raw/target/{target_id}.pdb",
-        script="scripts/pipeline_clean_target.sh"
+        script=local("scripts/pipeline_clean_target.sh")
     output:
-        processed_pdb="data/02_intermediate/target/{target_id}_processed.pdb"
+        processed_pdb="data/02_intermediate/target/{target_id}_processed.pdb",
+        dssp="data/01_raw/target/{target_id}_dssp.csv"
     params:
         save_filename=lambda wildcards: config["targets"][wildcards.target_id]['save_filename'],
         chains=lambda wildcards: config["targets"][wildcards.target_id].get("chains", ""),
@@ -65,5 +69,5 @@ rule clean_target_pdb:
         fi
 
         bash "{input.script}" -i "{input.pdb}" -o "{output.processed_pdb}" "${{CMD_ARGS[@]}}"
-        mv "{input.pdb}" "data/01_raw/target/{params.save_filename}"
+        mv "{input.pdb}" "$(dirname {input.pdb})/{params.save_filename}"
         """

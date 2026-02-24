@@ -17,15 +17,15 @@ rule process_framework_to_hlt:
         chain=lambda wildcards: config["frameworks"][wildcards.framework_id]["chain"],
         kind=lambda wildcards: config["frameworks"][wildcards.framework_id]["kind"],
         # The script path is relative to the RFantibody/ root, which is our workdir
-        script_base_dir="scripts",
+        script_base_dir=local("scripts/"),
         # The conversion script expects the output basename without the .pdb extension
         output_basename=lambda wildcards: wildcards.framework_id + "_HLT"
     shell:
         """
         if [ "{params.kind}" = "nanobody" ]; then
-            CONVERSION_SCRIPT="{params.script_base_dir}/convert_chothia2hlt_nanobody.sh"
+            CONVERSION_SCRIPT="{params.script_base_dir}convert_chothia2hlt_nanobody.sh"
         elif [ "{params.kind}" = "antibody" ]; then
-            CONVERSION_SCRIPT="{params.script_base_dir}/convert_chothia2hlt_antibody.sh"
+            CONVERSION_SCRIPT="{params.script_base_dir}convert_chothia2hlt_antibody.sh"
         else
             echo "Error: Unknown framework kind '{params.kind}' for {wildcards.framework_id}" >&2
             exit 1

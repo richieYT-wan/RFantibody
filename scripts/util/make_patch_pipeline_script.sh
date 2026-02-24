@@ -120,8 +120,9 @@ gawk -v T="$threshold" 'BEGIN{ if (T+0 != T) exit 1 }' || { echo "ERROR: -T must
 if [[ -z "${JOBS_DIR}" ]]; then
   JOBS_DIR="${ROOT_DIR}/scripts/rfantibody_jobs"
 fi
-LOGDIR="$(realpath -m "$JOBS_DIR/logs")"
-mkdir -p "$JOBS_DIR" "$LOGDIR"
+# TODO: Snakemake GCS Bucket Breaks at this part because $LOGDIR never gets made
+LOGDIR="$JOBS_DIR/logs"
+mkdir -p "$LOGDIR"
 
 # basenames without extensions
 fw_base="$(basename "$framework")"; fw_base="${fw_base%.*}"
@@ -239,7 +240,7 @@ fi
 
   cat > "$script_path" <<EOF
 #!/usr/bin/env bash
-set -euo pipefail
+set -euxo pipefail
 
 SCRIPT_PATH="\$(realpath "\${BASH_SOURCE[0]}")"
 SCRIPT_DIR="\$(dirname "\$SCRIPT_PATH")"

@@ -206,6 +206,7 @@ if $RUN_DSSP; then
   OUTPUT_DSSP=${INPUT_PDB%.*}_dssp.csv
   echo "Running DSSP on $INPUT_PDB"
   python ./scripts/util/run_dssp.py -i $INPUT_PDB --which_dssp mkdssp "${CHAIN_ARGS[@]}"
+  echo "Saved DSSP at $OUTPUT_DSSP"
   CLEANPDB_PYARGS+=( --dssp_csv $OUTPUT_DSSP --rsa_threshold $THRESHOLD_RSA)
 fi
 
