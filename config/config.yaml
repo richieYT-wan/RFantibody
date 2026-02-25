@@ -90,17 +90,16 @@ experiments:
   debug_run_config:
     format: "qv"
     design_loops: "H1:7,H2:6,H3:10"
-    diffuser_t: 15 # minimum of T=15 (rfab constraint) for debugging; 50 normally
+    diffuser_t: 15 # (rfab constraint: minT = 15) for debugging; 50 normally
     n_designs: 1
     n_seqs: 1
     n_recycles: 1
     hotspot_prop: 0.2
     rsa_threshold: 2 # Sum RSA over 3 residues as available patch
-    start_spec: "A190" # start residue (we do A148 for C chain)
+    start_spec: "A190" # start residue (we do A148 for C domain of CD33)
   # cuda_device: Not specified (should specify if using Vertex)
 
     
-
 runs:
   sample_run_7eow:
     framework_id: "7eow"

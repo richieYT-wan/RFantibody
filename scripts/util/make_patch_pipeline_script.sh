@@ -62,10 +62,7 @@ DIFFUSER_T=50
 JOBS_DIR="" 
 RESULTS_DIR=""
 FORMAT="qv"
-# TODO: Refactor and make it handle flags a bit more explicitly
-#       Add the option to give jobs custom names (reflected in both the script AND the --output name in the pipeline_rfantibody call)
-#       Keep the Hotspot naming convention ? --> Don't give custom name in the --output maybe to save the info in naming convention
-# --- long/short option parsing (GNU-style) ---
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -f|--framework)
@@ -146,7 +143,7 @@ gawk -v START_SPEC="$start_spec" -v THRESHOLD="$threshold" '
         start_res   = m[2] + 0
         has_start   = 1
       } else {
-        print "ERROR: start spec must look like A148" > "/dev/stderr"
+        print "ERROR: start spec must look like <chainRESIDUENUMBER> (ex: A148)." > "/dev/stderr"
         exit 2
       }
     } else {
@@ -240,7 +237,7 @@ fi
 
   cat > "$script_path" <<EOF
 #!/usr/bin/env bash
-set -euxo pipefail
+set -euo pipefail
 
 SCRIPT_PATH="\$(realpath "\${BASH_SOURCE[0]}")"
 SCRIPT_DIR="\$(dirname "\$SCRIPT_PATH")"
