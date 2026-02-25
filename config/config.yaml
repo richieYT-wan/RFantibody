@@ -72,7 +72,7 @@ targets:
 
 experiments:
   # This experiment is for 7AW6, starts at res A148,
-  # Takes RSA 1.75 as threshold, 10 designs (10 sequences per)
+  # Takes RSA 1.75 as threshold, 15 designs (w/ 10 sequences per)
   7AW6_A_startA148_rsa1p75_nd10_ns10:
   # mostly defined by framework (fw), target (hs), hotspot patch (hs)
     format: "qv"

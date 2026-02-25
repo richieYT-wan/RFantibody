@@ -2,9 +2,24 @@
 
 This repository is forked from https://github.com/RosettaCommons/RFantibody, adding multiple pipeline scripts for data preparation and running the full RFantibody pipelines.
 
-# Setup
+## Table of Contents
 
-## Download
+- [Setup](#setup)
+  - [Environments setup](#Environments-setup)
+  - [Verifying installation](#verifying-installation)
+  - [Conda environment for data processing](#conda-environment-for-data-processing)
+- [Data processing](#data-processing)
+  - [Framework processing](#framework-processing)
+  - [Target file processing](#target-file-processing)
+- [Running RFantibody's pipeline](#running-rfantibodys-pipeline)
+- [Output parsing](#output-parsing)
+- [Snakemake](#snakemake)
+  - [Snakemake requirements](#snakemake-requirements)
+  - [Config and rules](#config-and-rules)
+  - [Running the RFantibody pipeline using Snakemake](#running-the-rfantibody-pipeline-using-the-snakemake)
+- [Original README](#original-readme)
+
+## Environments setup
 
 Clone this repository using either:
 
@@ -26,8 +41,10 @@ bash setup.sh
 
 This will:
 
--   Create a `uv` virtual environment
+-   Create the conda environment (`ada`) required for processing data and outputs
+-   Create a `uv` virtual environment for running RFantibody
 -   Download the required model weights
+-   Verify the installation by running `rfdiffusion --help`
 
 Example:
 
@@ -37,8 +54,10 @@ cd RFantibody
 bash setup.sh
 ```
 
+
 ## Verifying installation
 Activate the environment with `source .venv/bin/activate` and run `rfdiffusion --help`. 
+
 ```
 $ cd RFantibody
 $ source .venv/bin/activate
@@ -52,17 +71,26 @@ Usage: rfdiffusion [OPTIONS]
   (...)
 ```
 
-## Conda environment for data processing
-
-A separate conda environment is required to handle all the processing (input and output parsing) steps. This can be done using conda with: 
-
+Deactivate the environment with `deactivate` and activate the conda environment `conda activate ada` and verify the installation by running `conda list | grep "biopython\|pandas\|snakemake\|dssp\|joblib` 
 ```
-# Assuming rfantibody's environment is active, e.g. you ran source .venv/bin/activate
-deactivate
-conda create -n ada
-conda activate ada
-conda install -c conda-forge pandas dssp biopython joblib
+(rfantibody) $ deactivate
+$ conda activate ada
+(ada) $ conda list | grep "biopython\|pandas\|snakemake\|dssp\|joblib"
+biopython                                1.86             py313h07c4f96_1       conda-forge
+dssp                                     4.5.8            py313h680e2f6_0       conda-forge
+joblib                                   1.5.3            pyhd8ed1ab_0          conda-forge
+pandas                                   3.0.0            py313hbfd7664_0       conda-forge
+snakemake                                9.16.2           hdfd78af_0            bioconda
+snakemake-interface-common               1.22.0           pyhd4c3c12_0          bioconda
+snakemake-interface-executor-plugins     9.3.9            pyhdfd78af_0          bioconda
+snakemake-interface-logger-plugins       2.0.0            pyhd4c3c12_0          bioconda
+snakemake-interface-report-plugins       1.3.0            pyhd4c3c12_0          bioconda
+snakemake-interface-scheduler-plugins    2.0.2            pyhd4c3c12_0          bioconda
+snakemake-interface-storage-plugins      4.3.2            pyhd4c3c12_0          bioconda
+snakemake-minimal                        9.16.2           pyhdfd78af_1          bioconda
+snakemake-storage-plugin-gcs             1.1.4            pyhdfd78af_0          bioconda
 ```
+
 
 # Data processing
 
@@ -133,7 +161,7 @@ Alternatively, generate scripts as jobs using
 ```
 scripts/util/make_patch_pipeline_script.sh -h
 
-bash scripts/util/make_patch_quiver_script.sh -f <framework.pdb> -t <target_processed.pdb> -T <threshold> -c <cuda_device> -n <custom_name> [-S A148]
+bash scripts/util/make_patch_pipeline_script.sh -f <framework.pdb> -t <target_processed.pdb> -T <threshold> -c <cuda_device> -n <custom_name> [-S A148]
 ```
 Where `-S` defines the starting residues in the target chain to consider for the hotspots and `-T`defines the summed RSA threshold for defining patches of 3 hotspot residues, ex: if -T 1.5, then three residues are marked as hotspots if their RSA values as extracted by DSSP sum to 1.5.  This generates a series of run scripts that create hotspots matching the criteria defined by the options. 
 
@@ -155,11 +183,19 @@ Example:
 
 # Snakemake
 
-This section below outlines how to run RFantibody using Snakemake (currently, the pipelines work locally and with gcloud buckets when adding the prefix).
+This section below outlines how to run RFantibody using Snakemake (currently, the pipelines work locally and with gcloud buckets when using the gcs_bucket profile). 
 
-The pipeline has currently been setup with `snakemake==9.16.2`. 
+[//]: # (TODO: Define a gbatch profile for GoogleBatch runs)
 
-Currently, 5 run campaigns have been set (5 different scaffolds: 3EAK, 7EOW, 7XL0, 8COH, 8Z8V, one target: CD33, chain A, domain C). See config/config.yaml for more information. 
+
+## Snakemake requirements 
+The pipeline was setup with `snakemake==9.16.2` and `snakemake-storage-plugin-gcsc=1.1.4`
+
+The pipelines requires gawk to be installed
+
+## Config and rules
+
+Currently, 5 run campaigns have been set (5 different scaffolds: _3EAK, 7EOW, 7XL0, 8COH, 8Z8V_, one target: _[CD33, chain A, domain C]_). See config/config.yaml for more information. 
 
 The config file is separated in multiple sections:
 
@@ -194,7 +230,7 @@ runs:
 ```
 
 
-The pipeline contains 5 rules, which executes various parts of the pipeline. Every input, intermediate output and final output are located in `data/*`.
+The pipeline contains 5 main rule files in `workflows/rules`, which executes various parts of the pipeline. Every input, intermediate output and final output are located in `data/*`.
 
 
 1) **Framework processing**: Input frameworks, as defined in `config/config.yaml` under `frameworks`. If the framework (in chothia format) is not present, it will be downloaded from SAbDab and saved under `data/01_raw/framework/<PDB_ID>_chothia.pdb`. The processed frameworks (To HLT format) are saved in `data/02_intermediate/framework/<PDB_ID>_HLT.pdb`.
@@ -202,24 +238,28 @@ The pipeline contains 5 rules, which executes various parts of the pipeline. Eve
 
 Processed inputs (frameworks and targets) go in `data/02_intermediate/{framework,target}`.
 
-3) **Hotspot patches picking and job script generation**: Hotspot picking parameters are defined in the config file under `experiments`. The `design loops` parameter as well as number of designs, seqs, etc. are also defined in this section. Generated jobs are saved as .sh scripts in `data/03_jobs/<run_id>/jobs/`
-4) **Running generated jobs**: Jobs generated in part 3) will be run sequentially (behaviour to change to allow true parallelisation), writing results in `data/04_results/<run_id>/`
-5) **Final output parsing**: All results related to a given `run_id` will be processed together and a final output file will be saved in `data/04_results/<run_id>/merged_parsed_outputs.csv`.
+3) **Hotspot patches picking and job script generation**: Hotspot picking parameters are defined in the config file under `experiments`. The `design loops` parameter as well as number of designs, seqs, etc. are also defined in this section. Generated jobs are saved as .args in `data/03_jobs/<run_id>/jobs/` which are then read in 4)
+4) **Running generated jobs**: Jobs generated in part 3) will be run sequentially (behaviour to change to allow true parallelisation), writing results in `data/04_rfab/<run_id>/`
+5) **Final output parsing**: All results related to a given `run_id` will be processed together and a final output file will be saved in `data/05_results/<run_id>/merged_parsed_outputs.csv`.
 
-The full pipeline can be run from the RFantibody root using
+
+## Running the RFantibody pipeline using Snakemake
+
+
+From the RFantibody root, the full pipeline can be run locally as 
 ```
 snakemake --snakefile workflows/snakefile data/04_results/<run_id>/merged_parsed_outputs.csv --cores 1
 ```
 
-[//]: # (TODO UPDATE README:)
-**_to update_**: gcloud part
+or with GCP buckets using
+
 ```
-snakemake \
-  --use-conda \
-  --default-storage-provider gcs \
-  --default-storage-prefix gs://em52-ab-develop-analytics-prod-f684/data/snakemake/rfantibody/ \ 
-  --snakefile workflows/snakefile data/04_results/<run_id>/merged_parsed_outputs.csv
+snakemake --profile workflows/profiles/gcs_bucket/ data/05_results/<run_id>/merged_parsed_outputs.csv --rerun-incomplete -F
 ```
+
+For a example run, use "sample_run_7eow" as `<run_id>`. This will run the full pipeline by downloading and processing targets and inputs, generate two hotspot patches, run RFantibody and finally save the parsed outputs into a merged csv file in `data/05_results/sample_run_7eow/`. 
+
+Override application default credentials (for Workstation/Workbench) using: `gcloud auth application-default login`
 
 ----------------
 
@@ -228,7 +268,7 @@ See below this line for the original README including every script options.
 
 ### Structure-Based _de novo_ Antibody Design
 
-![](https://github.com/richieYT-wan/RFantibody/blob/main/github_image.png)
+![](github_image.png)
 
 
 
