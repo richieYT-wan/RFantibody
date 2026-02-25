@@ -26,7 +26,7 @@ if [[ "$(basename "$ROOT_DIR")" != "RFantibody" ]]; then
 fi
 
 source .venv/bin/activate
-
+echo "$(pwd)"
 # ============================================================================
 # INPUT PARAMETERS // ARGUMENT PARSING DEFINITION
 # ============================================================================

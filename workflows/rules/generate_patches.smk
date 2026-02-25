@@ -11,11 +11,13 @@ rule generate_patches:
         generator=local("scripts/util/make_patch_pipeline_script.sh"),
     output:
         run_config="data/03_jobs/{run_id}/run_config.yaml",
-        jobs_dir=directory("data/03_jobs/{run_id}/jobs"),
-#         results_dir=directory("data/04_results/{run_id}"),
+        logs_dir=directory("data/03_jobs/{run_id}/jobs/logs"),
+        jobs_dir=directory("data/03_jobs/{run_id}/jobs/"),
+        # Extremely convoluted way to feed gbucket paths because only input/output can add gs:// prefix and params can't
+        # so we touch a tmp file to make sure the result directory exist and use it to $(dirname) to get the 
+        placeholder="data/04_results/{run_id}/.tmp",
         manifest="data/03_jobs/{run_id}/jobs_list.tsv"
     params:
-        jobs_dir=directory("data/03_jobs/{run_id}/jobs"),
         results_dir=directory("data/04_results/{run_id}"),
         rsa_threshold=lambda wildcards: str(get_exp_cfg(wildcards.run_id, config).get("rsa_threshold", 0.2)),
         design_loops=lambda wildcards: str(get_exp_cfg(wildcards.run_id, config).get("design_loops", "")),
@@ -37,7 +39,7 @@ rule generate_patches:
 #         print('HERE WTF')
 #         print(output.jobs_dir)
 #         print('#'*100)
-        os.makedirs(output.jobs_dir, exist_ok=True)
+        os.makedirs(output.logs_dir, exist_ok=True)
         # Saving run config to know which we are writing to
         timestamp = dt.now().strftime("%y%m%d_%H%M%S")
         run_id = wildcards.run_id
@@ -56,7 +58,11 @@ rule generate_patches:
 
         shell(r"""
         set -euxo pipefail
-        mkdir -p {output.jobs_dir}
+        JOBS_DIR=$(dirname {output.logs_dir})
+        mkdir -p $JOBS_DIR
+        RESULTS_DIR=$(dirname {output.placeholder})
+        mkdir -p $RESULTS_DIR
+        touch {output.placeholder}
 
         # Run generator inside run-specific folder so it doesn't collide with other runs
 #         TG="$(realpath "{input.target}")"
@@ -65,23 +71,18 @@ rule generate_patches:
         FW="{input.framework}"
         GEN="$(realpath "{input.generator}")"
 
-#         echo "" 
-#         echo "{output.jobs_dir}"
-#         echo "wtf"
-#         echo "{params.jobs_dir}"
-#         echo ""
         # Generator writes into job directory
         bash "$GEN" -f "$FW" -t "$TG" -T "{params.rsa_threshold}" -c "{params.cuda_device}" -d "{params.n_designs}" -s "{params.n_seqs}" -r "{params.n_recycles}" \
-        -O "{output.jobs_dir}" -R {params.results_dir} -F {params.res_format} --diffuser-t {params.diffuser_t} {params.loops_arg} {params.start_arg}
+        -O $JOBS_DIR -R $RESULTS_DIR -F {params.res_format} --diffuser-t {params.diffuser_t} {params.loops_arg} {params.start_arg}
 
-        if [ ! -d {output.jobs_dir} ]; then
-          echo "ERROR: generator did not create {output.jobs_dir}" >&2
+        if [ ! -d $JOBS_DIR ]; then
+          echo "ERROR: generator did not create $JOBS_DIR" >&2
           exit 2
         fi
 
         # Write manifest
         : > "{output.manifest}"
-        for s in "{output.jobs_dir}"/*.sh; do
+        for s in "$JOBS_DIR"/*.sh; do
           [ -e "$s" ] || break
           printf "%s\n" "$(basename "$s")" >> "{output.manifest}"
         done
