@@ -248,13 +248,13 @@ Processed inputs (frameworks and targets) go in `data/02_intermediate/{framework
 
 From the RFantibody root, the full pipeline can be run locally as 
 ```
-snakemake --snakefile workflows/snakefile data/04_results/<run_id>/merged_parsed_outputs.csv --cores 1
+snakemake --snakefile workflows/snakefile data/04_results/<run_id>/merged_parsed_outputs.csv --cores 1 -F
 ```
 
 or with GCP buckets using
 
 ```
-snakemake --profile workflows/profiles/gcs_bucket/ data/05_results/<run_id>/merged_parsed_outputs.csv --rerun-incomplete -F
+snakemake --profile workflows/profiles/gcs_bucket/ data/05_results/<run_id>/merged_parsed_outputs.csv -F
 ```
 
 For a example run, use "sample_run_7eow" as `<run_id>`. This will run the full pipeline by downloading and processing targets and inputs, generate two hotspot patches, run RFantibody and finally save the parsed outputs into a merged csv file in `data/05_results/sample_run_7eow/`. 
