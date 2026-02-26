@@ -20,6 +20,9 @@ rule process_framework_to_hlt:
         script_base_dir=local("scripts/"),
         # The conversion script expects the output basename without the .pdb extension
         output_basename=lambda wildcards: wildcards.framework_id + "_HLT"
+    resources:
+        googlebatch_job_name=lambda wc: f"rfab-{wc.run_id}",
+        googlebatch_labels="workflow=rfantibody,step=process_framework"
     shell:
         """
         if [ "{params.kind}" = "nanobody" ]; then

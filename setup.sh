@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e pipefail
 
 echo "################################################"
 echo "Installing RFantibody environment"

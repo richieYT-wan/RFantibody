@@ -40,6 +40,8 @@ rule clean_target_pdb:
         renumber=lambda wildcards: config["targets"][wildcards.target_id].get("renumber", False)
     conda:
         str(ADAENV)
+    resources:
+        googlebatch_job_name=lambda wc: f"rfab-{wc.run_id}-process_target",
     shell:
         r"""
         set -euo pipefail

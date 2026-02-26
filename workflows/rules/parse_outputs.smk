@@ -12,6 +12,12 @@ rule parse_outputs:
     params:
         format = lambda wildcards: str(get_exp_cfg(wildcards.run_id, config).get("format", "qv")),
         run_dir = lambda wildcards: f"data/05_results/{wildcards.run_id}"
+    resources:
+        googlebatch_job_name=lambda wc: f"rfab-{wc.run_id}-parse_output_1",
+        accelerator_type="nvidia-tesla-v100",
+        accelerator_count=1,
+    conda:
+        str(ADAENV)
     shell:
         """
         set -euo pipefail
@@ -53,6 +59,8 @@ rule merge_outputs:
         run_dir=lambda wildcards: f"data/04_results/{wildcards.run_id}"
     conda:
         str(ADAENV)
+    resources:
+        googlebatch_job_name=lambda wc: f"rfab-{wc.run_id}-parse_output_1"
     run:
         import os
         import glob
