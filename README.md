@@ -1,3 +1,6 @@
+TODO: Integrate RFdiffusion3 + weights and RoseTTAFold3 + weights into the current workflow to replace finetuned RFdiff2 and RF2
+
+
 # RFantibody
 
 This repository is forked from https://github.com/RosettaCommons/RFantibody, adding multiple pipeline scripts for data preparation and running the full RFantibody pipelines.
