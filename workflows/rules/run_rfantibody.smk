@@ -5,7 +5,6 @@ from utils import get_run_cfg
 
 rule run_rfantibody:
     input:
-        *setup_inputs(),
         framework=lambda wc: f"data/02_intermediate/framework/{get_run_cfg(wc.run_id, config)['framework_id']}_HLT.pdb",
         target=lambda wc: f"data/02_intermediate/target/{get_run_cfg(wc.run_id, config)['target_id']}_processed.pdb",
         script=local("scripts/pipeline_rfantibody.sh"),
@@ -14,14 +13,12 @@ rule run_rfantibody:
     output:
         results_dir=directory("data/04_rfab/{run_id}"),
         done="data/04_rfab/{run_id}/rfab_run.complete",
-    resources:
-        googlebatch_job_name=lambda wc: f"rfab-{wc.run_id}-run_rfab",
-        googlebatch_labels="workflow=rfantibody,step=rf2",
-        accelerator_type="nvidia-tesla-v100",
-        accelerator_count=1
+    conda:
+        str(ADAENV)
     shell:
         r"""
         set -euo pipefail
+
         JOBS_DIR="{input.jobs_dir}"
         RESULTS_DIR="{output.results_dir}"
         mkdir -p "$RESULTS_DIR" "$JOBS_DIR/logs"

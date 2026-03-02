@@ -13,8 +13,7 @@ rule generate_patches:
         run_config="data/03_jobs/{run_id}/run_config.yaml",
         jobs_dir=directory("data/03_jobs/{run_id}/jobs"),
         manifest="data/03_jobs/{run_id}/jobs_list.tsv",
-    resources:
-        googlebatch_job_name=lambda wc: f"rfab-{wc.run_id}-generate_patch",
+
     params:
         results_dir=directory("data/04_rfab/{run_id}"),
         rsa_threshold=lambda wildcards: str(get_exp_cfg(wildcards.run_id, config).get("rsa_threshold", 0.2)),

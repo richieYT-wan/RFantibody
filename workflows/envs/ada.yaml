@@ -10,4 +10,3 @@ dependencies:
   - dssp=4.5.8
   - snakemake=9.16.2
   - snakemake-storage-plugin-gcs=1.1.4
-  - snakemake-executor-plugin-googlebatch
