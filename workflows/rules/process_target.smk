@@ -41,7 +41,7 @@ rule clean_target_pdb:
     conda:
         str(ADAENV)
     resources:
-        googlebatch_job_name=lambda wc: f"rfab-{wc.run_id}-process_target",
+        googlebatch_job_name=lambda wc: f"rfab-{wc.target_id}-process_target",
     shell:
         r"""
         set -euo pipefail

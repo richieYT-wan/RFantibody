@@ -27,7 +27,7 @@ rule run_rfantibody:
         mkdir -p "$RESULTS_DIR" "$JOBS_DIR/logs"
         mkdir -p "$(dirname "{output.done}")"
 
-        RFAB_SCRIPT="{input.script}"g
+        RFAB_SCRIPT="{input.script}"
         FW="{input.framework}"
         TG="{input.target}"
 
