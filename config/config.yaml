@@ -62,7 +62,7 @@ targets:
     pdb_id: "7AW6"
     save_filename: "CD33_7AW6.pdb"
     rcsb_pdb_url: "https://files.rcsb.org/download/7AW6.pdb"
-    chains: "B"
+    chains: "A,B"
     ligands: "NAG,FVP"
     cutoff: 4.0
     run_dssp: true

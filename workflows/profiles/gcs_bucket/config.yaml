@@ -1,11 +1,13 @@
 use-conda: true
 cores: 16
 snakefile: workflows/snakefile
-
+config:
+  executor: local
+executor: local
 # GCS storage
-default-storage-provider: "gcs"
-storage-gcs-project: "awk-ab-develop-axe-prod-da80"
-default-storage-prefix: "gs://em52-ab-develop-analytics-prod-f684/data/denovo-design/snakemake/rfantibody"
+default-storage-provider: gcs
+storage-gcs-project: awk-ab-develop-axe-prod-da80
+default-storage-prefix: gs://em52-ab-develop-analytics-prod-f684/data/denovo-design/snakemake/rfantibody
 # strongly recommended for you
 conda-frontend: conda
 latency-wait: 60
